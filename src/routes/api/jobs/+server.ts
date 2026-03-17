@@ -2,13 +2,14 @@ import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
 import { jobDAO } from '$lib/server/db'
 
-export const GET: RequestHandler = () => {
+export const GET: RequestHandler = ({ url }) => {
   try {
-    const jobs = jobDAO.getAll()
+    const keyword = url.searchParams.get('keyword')
+    const jobs = keyword ? jobDAO.search(keyword) : jobDAO.getAll()
     return json({ success: true, data: jobs })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('GET /api/jobs error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }
 
@@ -52,7 +53,7 @@ export const POST: RequestHandler = async ({ request }) => {
     })
     return json({ success: true, data: job }, { status: 201 })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('POST /api/jobs error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }

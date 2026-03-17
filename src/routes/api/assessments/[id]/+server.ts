@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { assessmentDAO } from '$lib/server/db'
+import { assessmentDAO, candidateDAO, jobDAO } from '$lib/server/db'
 
 export const GET: RequestHandler = ({ params }) => {
   try {
@@ -10,8 +10,8 @@ export const GET: RequestHandler = ({ params }) => {
     }
     return json({ success: true, data: assessment })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('GET /api/assessments/[id] error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }
 
@@ -34,6 +34,21 @@ export const PUT: RequestHandler = async ({ params, request }) => {
     }
 
     const data = body as Record<string, unknown>
+
+    if ('candidateId' in data) {
+      const candidate = candidateDAO.getById(String(data.candidateId))
+      if (!candidate) {
+        return json({ success: false, error: 'Candidate not found' }, { status: 404 })
+      }
+    }
+
+    if ('jobId' in data) {
+      const job = jobDAO.getById(String(data.jobId))
+      if (!job) {
+        return json({ success: false, error: 'Job not found' }, { status: 404 })
+      }
+    }
+
     const update: Partial<Omit<typeof existing, 'id' | 'createdAt'>> = {}
 
     if ('candidateId' in data) update.candidateId = String(data.candidateId)
@@ -61,8 +76,8 @@ export const PUT: RequestHandler = async ({ params, request }) => {
     const updated = assessmentDAO.getById(params.id)
     return json({ success: true, data: updated })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('PUT /api/assessments/[id] error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }
 
@@ -73,9 +88,9 @@ export const DELETE: RequestHandler = ({ params }) => {
       return json({ success: false, error: 'Assessment not found' }, { status: 404 })
     }
     assessmentDAO.delete(params.id)
-    return json({ success: true, data: null })
+    return new Response(null, { status: 204 })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('DELETE /api/assessments/[id] error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }

@@ -3,7 +3,7 @@ import type { RequestHandler } from './$types'
 import { chatHistoryDAO } from '$lib/server/db'
 import { createAI, AIServiceError } from '$lib/server/services/ai'
 import type { Message } from '$lib/types'
-import { getAIConfig } from '../utils'
+import { getAIConfig, AIConfigError } from '../utils'
 
 export const POST: RequestHandler = async ({ request }) => {
   let body: unknown
@@ -24,10 +24,12 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const data = body as Record<string, unknown>
   const sessionId = typeof data.sessionId === 'string' ? data.sessionId : 'default'
-  const messages = (data.messages as Array<{ role: unknown; content: unknown }>).map((m) => ({
+  const allMessages = (data.messages as Array<{ role: unknown; content: unknown }>).map((m) => ({
     role: m.role as Message['role'],
     content: String(m.content)
   }))
+  // Truncate to most recent 50 messages to avoid token overflow
+  const messages = allMessages.slice(-50)
 
   try {
     const config = getAIConfig()
@@ -43,10 +45,13 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json({ success: true, data: { reply, sessionId } })
   } catch (e) {
+    if (e instanceof AIConfigError) {
+      return json({ success: false, error: e.message }, { status: 422 })
+    }
     if (e instanceof AIServiceError) {
       return json({ success: false, error: e.message }, { status: 502 })
     }
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('POST /api/ai/chat error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }

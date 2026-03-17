@@ -10,8 +10,8 @@ export const GET: RequestHandler = ({ params }) => {
     }
     return json({ success: true, data: job })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('GET /api/jobs/[id] error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }
 
@@ -57,8 +57,8 @@ export const PUT: RequestHandler = async ({ params, request }) => {
     const updated = jobDAO.getById(params.id)
     return json({ success: true, data: updated })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('PUT /api/jobs/[id] error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }
 
@@ -69,9 +69,9 @@ export const DELETE: RequestHandler = ({ params }) => {
       return json({ success: false, error: 'Job not found' }, { status: 404 })
     }
     jobDAO.delete(params.id)
-    return json({ success: true, data: null })
+    return new Response(null, { status: 204 })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('DELETE /api/jobs/[id] error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }

@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { assessmentDAO } from '$lib/server/db'
+import { assessmentDAO, candidateDAO, jobDAO } from '$lib/server/db'
 
 export const GET: RequestHandler = ({ url }) => {
   try {
@@ -8,7 +8,11 @@ export const GET: RequestHandler = ({ url }) => {
     const jobId = url.searchParams.get('jobId')
 
     let assessments
-    if (candidateId) {
+    if (candidateId && jobId) {
+      assessments = assessmentDAO.getAll().filter(
+        (a) => a.candidateId === candidateId && a.jobId === jobId
+      )
+    } else if (candidateId) {
       assessments = assessmentDAO.getByCandidateId(candidateId)
     } else if (jobId) {
       assessments = assessmentDAO.getByJobId(jobId)
@@ -18,8 +22,8 @@ export const GET: RequestHandler = ({ url }) => {
 
     return json({ success: true, data: assessments })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('GET /api/assessments error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }
 
@@ -44,11 +48,23 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   const data = body as Record<string, unknown>
+  const candidateId = String(data.candidateId)
+  const jobId = String(data.jobId)
 
   try {
+    const candidate = candidateDAO.getById(candidateId)
+    if (!candidate) {
+      return json({ success: false, error: 'Candidate not found' }, { status: 404 })
+    }
+
+    const job = jobDAO.getById(jobId)
+    if (!job) {
+      return json({ success: false, error: 'Job not found' }, { status: 404 })
+    }
+
     const assessment = assessmentDAO.create({
-      candidateId: String(data.candidateId),
-      jobId: String(data.jobId),
+      candidateId,
+      jobId,
       scores: Array.isArray(data.scores)
         ? (data.scores as Array<{ name: unknown; weight: unknown; score: unknown }>).map((s) => ({
             name: String(s.name),
@@ -64,7 +80,7 @@ export const POST: RequestHandler = async ({ request }) => {
     })
     return json({ success: true, data: assessment }, { status: 201 })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('POST /api/assessments error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }

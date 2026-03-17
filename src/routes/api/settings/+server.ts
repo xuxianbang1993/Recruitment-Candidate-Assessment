@@ -2,8 +2,10 @@ import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
 import { settingsDAO } from '$lib/server/db'
 
+const ALLOWED_KEYS = new Set(['ai_provider', 'ai_api_key', 'ai_model', 'ai_base_url'])
+
 function maskSensitive(key: string, value: string): string {
-  if ((key.includes('key') || key.includes('secret')) && value.length > 8) {
+  if ((key.includes('key') || key.includes('secret')) && value.length > 4) {
     return value.slice(0, 4) + '****' + value.slice(-4)
   }
   return value
@@ -18,8 +20,8 @@ export const GET: RequestHandler = () => {
     }
     return json({ success: true, data: masked })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('GET /api/settings error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }
 
@@ -38,9 +40,11 @@ export const PUT: RequestHandler = async ({ request }) => {
   try {
     const updates = body as Record<string, unknown>
     for (const [key, value] of Object.entries(updates)) {
+      if (!ALLOWED_KEYS.has(key)) continue
       const strValue = String(value)
-      // Skip masked values (user did not change the key)
-      if (strValue.includes('****')) continue
+      // Skip masked values: read current value, mask it, compare with submitted
+      const currentValue = settingsDAO.get(key)
+      if (currentValue !== undefined && maskSensitive(key, currentValue) === strValue) continue
       settingsDAO.set(key, strValue)
     }
 
@@ -51,7 +55,7 @@ export const PUT: RequestHandler = async ({ request }) => {
     }
     return json({ success: true, data: masked })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('PUT /api/settings error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }

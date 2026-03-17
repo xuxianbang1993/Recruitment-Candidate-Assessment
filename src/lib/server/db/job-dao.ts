@@ -82,6 +82,20 @@ export class JobDAO {
     const db = getDatabase();
     db.prepare('DELETE FROM jobs WHERE id = ?').run(id);
   }
+
+  search(keyword: string): Job[] {
+    const db = getDatabase();
+    const escaped = keyword.replace(/[%_]/g, '\\$&');
+    const pattern = '%' + escaped + '%';
+    const rows = db
+      .prepare(
+        `SELECT * FROM jobs
+         WHERE title LIKE ? ESCAPE '\\' OR department LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\'
+         ORDER BY created_at DESC`
+      )
+      .all(pattern, pattern, pattern) as JobRow[];
+    return rows.map(rowToJob);
+  }
 }
 
 export const jobDAO = new JobDAO();

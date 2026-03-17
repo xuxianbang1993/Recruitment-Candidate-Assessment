@@ -8,8 +8,8 @@ export const GET: RequestHandler = ({ url }) => {
     const candidates = keyword ? candidateDAO.search(keyword) : candidateDAO.getAll()
     return json({ success: true, data: candidates })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('GET /api/candidates error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }
 
@@ -38,6 +38,11 @@ export const POST: RequestHandler = async ({ request }) => {
 
   const data = body as Record<string, unknown>
 
+  const email = String(data.email)
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return json({ success: false, error: '邮箱格式不正确' }, { status: 400 })
+  }
+
   try {
     const candidate = candidateDAO.create({
       name: String(data.name),
@@ -51,7 +56,7 @@ export const POST: RequestHandler = async ({ request }) => {
     })
     return json({ success: true, data: candidate }, { status: 201 })
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Unknown error'
-    return json({ success: false, error: message }, { status: 500 })
+    console.error('POST /api/candidates error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }
