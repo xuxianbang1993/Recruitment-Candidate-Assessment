@@ -9,11 +9,12 @@ export class TextResumeParser implements ResumeParser {
       throw new Error(`文本文件 "${filename}" 为空，无法解析`)
     }
 
-    // Attempt UTF-8 first; fall back to latin1 to avoid Buffer decode errors.
-    let rawText: string
-    try {
-      rawText = buffer.toString('utf-8')
-    } catch {
+    // buffer.toString('utf-8') never throws; detect encoding issues via replacement characters instead.
+    let rawText = buffer.toString('utf-8')
+    const replacementCount = (rawText.match(/\uFFFD/g) || []).length
+    if (replacementCount > rawText.length * 0.05) {
+      // More than 5% replacement characters — likely not UTF-8, retry as latin1
+      console.warn(`文件 "${filename}" 可能不是 UTF-8 编码，尝试 latin1 解码`)
       rawText = buffer.toString('latin1')
     }
 

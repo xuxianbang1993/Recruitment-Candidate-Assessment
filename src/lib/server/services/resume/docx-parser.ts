@@ -1,3 +1,4 @@
+import path from 'path'
 import mammoth from 'mammoth'
 import type { ResumeParser, ParsedResume } from './resume-parser.js'
 import { truncateResumeText } from './resume-parser.js'
@@ -8,6 +9,13 @@ export class DocxResumeParser implements ResumeParser {
   async parse(buffer: Buffer, filename: string): Promise<ParsedResume> {
     if (buffer.length === 0) {
       throw new Error(`Word 文件 "${filename}" 为空，无法解析`)
+    }
+
+    // Warn about limited .doc support — mammoth is optimised for .docx
+    if (path.extname(filename).toLowerCase() === '.doc') {
+      console.warn(
+        `注意: "${filename}" 是旧版 .doc 格式，mammoth 对 .doc 支持有限，建议转换为 .docx`
+      )
     }
 
     let result: Awaited<ReturnType<typeof mammoth.extractRawText>>

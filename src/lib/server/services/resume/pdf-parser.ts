@@ -21,7 +21,7 @@ export class PdfResumeParser implements ResumeParser {
       throw new Error(`PDF 解析失败 "${filename}": ${message}`)
     } finally {
       // Always release pdfjs resources
-      await parser.destroy().catch(() => undefined)
+      await parser.destroy().catch((err) => console.warn('PDF 资源释放失败:', err))
     }
 
     const rawText = textResult.text ?? ''
