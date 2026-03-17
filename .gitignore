@@ -22,6 +22,11 @@ Thumbs.db
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
+# Database
+*.db
+*.db-wal
+*.db-shm
+
 # Local docs and demo (not for remote)
 docs/
 recruitment-assessment.html

@@ -118,11 +118,12 @@ export class CandidateDAO {
 
   search(keyword: string): Candidate[] {
     const db = getDatabase();
-    const pattern = `%${keyword}%`;
+    const escaped = keyword.replace(/[%_]/g, '\\$&');
+    const pattern = '%' + escaped + '%';
     const rows = db
       .prepare(
         `SELECT * FROM candidates
-         WHERE name LIKE ? OR position LIKE ? OR email LIKE ?
+         WHERE name LIKE ? ESCAPE '\\' OR position LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\'
          ORDER BY created_at DESC`
       )
       .all(pattern, pattern, pattern) as CandidateRow[];

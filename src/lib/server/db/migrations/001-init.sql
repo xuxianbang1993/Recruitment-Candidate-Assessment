@@ -24,8 +24,8 @@ CREATE TABLE IF NOT EXISTS jobs (
 
 CREATE TABLE IF NOT EXISTS assessments (
   id TEXT PRIMARY KEY,
-  candidate_id TEXT NOT NULL REFERENCES candidates(id),
-  job_id TEXT NOT NULL REFERENCES jobs(id),
+  candidate_id TEXT NOT NULL REFERENCES candidates(id) ON DELETE CASCADE,
+  job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
   scores TEXT, -- JSON array of {name, weight, score}
   total_score REAL DEFAULT 0,
   strengths TEXT, -- JSON array
@@ -47,3 +47,7 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_assessments_candidate ON assessments(candidate_id);
+CREATE INDEX IF NOT EXISTS idx_assessments_job ON assessments(job_id);
+CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history(session_id);

@@ -9,12 +9,8 @@ function getDbPath(): string {
   if (process.env.NODE_ENV === 'test') {
     return ':memory:';
   }
-  // Use DB_PATH env var if set, otherwise use project root
-  if (process.env.DB_PATH) {
-    return process.env.DB_PATH;
-  }
-  // Resolve to project root (4 levels up from src/lib/server/db/)
-  return join(__dirname, '..', '..', '..', '..', '..', 'recruitment.db');
+  // Use DB_PATH env var if set, otherwise resolve from process.cwd() (project root)
+  return process.env.DB_PATH || join(process.cwd(), 'recruitment.db');
 }
 
 let db: Database.Database | null = null;
@@ -68,6 +64,11 @@ export function getDatabase(): Database.Database {
   db.pragma('journal_mode = WAL');
   // Enforce foreign key constraints
   db.pragma('foreign_keys = ON');
+  // Performance tuning
+  db.pragma('busy_timeout = 5000');
+  db.pragma('synchronous = NORMAL');
+  db.pragma('cache_size = -64000');
+  db.pragma('temp_store = MEMORY');
 
   runMigrations(db);
 
