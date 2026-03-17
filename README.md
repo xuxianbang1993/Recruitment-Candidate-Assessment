@@ -1,42 +1,56 @@
-# sv
+# Recruitment-Candidate-Assessment
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+智聘评估 - 招聘需求智能评估系统
 
-## Creating a project
+## Overview
 
-If you're seeing this, you've probably already done this step. Congrats!
+A desktop application for HR recruitment assessment, powered by multiple AI providers (OpenAI / Claude / DeepSeek). Built with Svelte 5 + SvelteKit + Electron for a seamless desktop experience.
 
-```sh
-# create a new project
-npx sv create my-app
-```
+## Tech Stack
 
-To recreate this project with the same configuration:
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Svelte 5 + SvelteKit + TypeScript |
+| Styling | Tailwind CSS v4 |
+| Desktop | Electron |
+| Database | SQLite (better-sqlite3) |
+| AI | OpenAI / Claude / DeepSeek (Strategy Pattern) |
+| Charts | Chart.js v4 |
 
-```sh
-# recreate this project
-npx sv@0.12.7 create --template minimal --types ts --no-install .
-```
+## Development
 
-## Developing
+```bash
+# Install dependencies
+npm install
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+# Start dev server
 npm run dev
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+# Type check
+npm run check
 
-## Building
-
-To create a production version of your app:
-
-```sh
+# Build
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+## Project Structure
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```
+src/
+  routes/          # Page routes (SvelteKit)
+  lib/
+    components/    # UI components
+    services/      # Business logic (AI, resume parsing)
+    stores/        # Svelte stores
+    db/            # SQLite DAO layer
+    types/         # TypeScript type definitions
+electron/          # Electron desktop shell
+```
+
+## Changelog
+
+See [Releases](https://github.com/xuxianbang1993/Recruitment-Candidate-Assessment/releases) for version history.
+
+## License
+
+Private - Internal use only.
