@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.runoob.com)",
+      "Bash(curl:*)",
+      "WebSearch",
+      "Bash(cd:*)"
+    ]
+  }
+}
