@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import SkillTagInput from '$lib/components/SkillTagInput.svelte'
   import WeightSlider from '$lib/components/WeightSlider.svelte'
   import type { Job, ScoreDimension } from '$lib/types'
@@ -18,14 +19,15 @@
     { name: '发展潜力', weight: 5, score: 0 },
   ]
 
-  let title = $state(job?.title ?? '')
-  let department = $state(job?.department ?? '')
-  let experience = $state(job?.requirements?.find(r => r.startsWith('exp:'))?.replace('exp:', '') ?? '')
-  let education = $state(job?.requirements?.find(r => r.startsWith('edu:'))?.replace('edu:', '') ?? '')
-  let description = $state(job?.description ?? '')
-  let skills = $state<string[]>(job?.skills ?? [])
+  // Form state initialized from props (intentionally captures initial value only)
+  let title = $state(untrack(() => job?.title ?? ''))
+  let department = $state(untrack(() => job?.department ?? ''))
+  let experience = $state(untrack(() => job?.requirements?.find(r => r.startsWith('exp:'))?.replace('exp:', '') ?? ''))
+  let education = $state(untrack(() => job?.requirements?.find(r => r.startsWith('edu:'))?.replace('edu:', '') ?? ''))
+  let description = $state(untrack(() => job?.description ?? ''))
+  let skills = $state<string[]>(untrack(() => job?.skills ?? []))
   let weights = $state<ScoreDimension[]>(
-    job?.weights ?? defaultWeights.map(w => ({ ...w }))
+    untrack(() => job?.weights ?? defaultWeights.map(w => ({ ...w })))
   )
 
   let submitting = $state(false)
@@ -77,10 +79,11 @@
   <div class="grid grid-cols-2 gap-4">
     <!-- Job Title -->
     <div class="flex flex-col gap-1.5">
-      <label class="text-sm font-medium" style="color: #1A1D23;">
+      <label for="job-title" class="text-sm font-medium" style="color: #1A1D23;">
         职位名称 <span style="color: #C75450;">*</span>
       </label>
       <input
+        id="job-title"
         type="text"
         placeholder="例如：高级前端工程师"
         bind:value={title}
@@ -98,10 +101,11 @@
 
     <!-- Department -->
     <div class="flex flex-col gap-1.5">
-      <label class="text-sm font-medium" style="color: #1A1D23;">
+      <label for="job-department" class="text-sm font-medium" style="color: #1A1D23;">
         部门 <span style="color: #C75450;">*</span>
       </label>
       <input
+        id="job-department"
         type="text"
         placeholder="例如：技术研发部"
         bind:value={department}
@@ -119,8 +123,9 @@
 
     <!-- Experience -->
     <div class="flex flex-col gap-1.5">
-      <label class="text-sm font-medium" style="color: #1A1D23;">工作年限要求</label>
+      <label for="job-experience" class="text-sm font-medium" style="color: #1A1D23;">工作年限要求</label>
       <select
+        id="job-experience"
         bind:value={experience}
         class="px-3 py-2.5 rounded-lg text-sm outline-none cursor-pointer"
         style="background: #F7F5F2; border: 1px solid #E8E5E0; color: #1A1D23;"
@@ -137,8 +142,9 @@
 
     <!-- Education -->
     <div class="flex flex-col gap-1.5">
-      <label class="text-sm font-medium" style="color: #1A1D23;">学历要求</label>
+      <label for="job-education" class="text-sm font-medium" style="color: #1A1D23;">学历要求</label>
       <select
+        id="job-education"
         bind:value={education}
         class="px-3 py-2.5 rounded-lg text-sm outline-none cursor-pointer"
         style="background: #F7F5F2; border: 1px solid #E8E5E0; color: #1A1D23;"
@@ -154,7 +160,7 @@
 
   <!-- Skills -->
   <div class="flex flex-col gap-1.5">
-    <label class="text-sm font-medium" style="color: #1A1D23;">技能要求</label>
+    <span class="text-sm font-medium" style="color: #1A1D23;">技能要求</span>
     <SkillTagInput
       {skills}
       onadd={(s) => (skills = [...skills, s])}
@@ -165,8 +171,9 @@
 
   <!-- Description -->
   <div class="flex flex-col gap-1.5">
-    <label class="text-sm font-medium" style="color: #1A1D23;">职位描述</label>
+    <label for="job-description" class="text-sm font-medium" style="color: #1A1D23;">职位描述</label>
     <textarea
+      id="job-description"
       placeholder="描述岗位职责、任职要求等..."
       bind:value={description}
       rows="4"
@@ -178,7 +185,7 @@
   <!-- Weights -->
   <div class="flex flex-col gap-3">
     <div class="flex items-center justify-between">
-      <label class="text-sm font-medium" style="color: #1A1D23;">评分维度权重</label>
+      <span class="text-sm font-medium" style="color: #1A1D23;">评分维度权重</span>
       <span
         class="text-xs px-2 py-0.5 rounded-full"
         style="

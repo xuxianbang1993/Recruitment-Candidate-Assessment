@@ -1,24 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import ReportSection from '$lib/components/ReportSection.svelte'
-
-  interface Candidate {
-    id: string
-    name: string
-    position?: string
-  }
-
-  interface AssessmentItem {
-    id: string
-    jobId: string
-    totalScore: number
-    createdAt: string
-    jobTitle?: string
-  }
+  import type { Candidate, Assessment } from '$lib/types'
 
   let candidates = $state<Candidate[]>([])
   let selectedCandidateId = $state<string>('')
-  let assessments = $state<AssessmentItem[]>([])
+  let assessments = $state<Assessment[]>([])
   let selectedAssessmentId = $state<string>('')
   let reportText = $state<string>('')
   let reportScore = $state<number | null>(null)

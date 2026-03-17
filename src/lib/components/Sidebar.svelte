@@ -8,6 +8,7 @@
     { label: '智能分析', href: '/assessment/results', icon: 'iconfont icon-analysis' },
     { label: 'AI 对话', href: '/chat', icon: 'iconfont icon-ai' },
     { label: '匹配报告', href: '/reports', icon: 'iconfont icon-report' },
+    { label: '系统设置', href: '/settings', icon: 'iconfont icon-setting' },
   ]
 
   function isActive(href: string): boolean {
@@ -17,7 +18,7 @@
 </script>
 
 <aside
-  class="flex flex-col h-screen w-56 flex-shrink-0"
+  class="flex flex-col h-screen w-60 flex-shrink-0"
   style="background: #1A1D23;"
 >
   <!-- Brand -->
@@ -41,44 +42,26 @@
   <!-- Navigation -->
   <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
     {#each navItems as item}
+      {@const active = isActive(item.href)}
       <a
         href={item.href}
+        aria-current={active ? 'page' : undefined}
         class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group"
         style="
           font-size: 13.5px;
-          color: {isActive(item.href) ? '#ffffff' : 'rgba(229,231,235,0.65)'};
-          background: {isActive(item.href) ? 'rgba(212,118,60,0.18)' : 'transparent'};
-          border-left: {isActive(item.href) ? '3px solid #D4763C' : '3px solid transparent'};
+          color: {active ? '#ffffff' : 'rgba(229,231,235,0.65)'};
+          background: {active ? 'rgba(212,118,60,0.18)' : 'transparent'};
+          border-left: {active ? '3px solid #D4763C' : '3px solid transparent'};
         "
       >
         <i
           class="{item.icon} text-base flex-shrink-0"
-          style="color: {isActive(item.href) ? '#D4763C' : 'rgba(229,231,235,0.5)'};"
+          style="color: {active ? '#D4763C' : 'rgba(229,231,235,0.5)'};"
         ></i>
         <span class="font-medium">{item.label}</span>
       </a>
     {/each}
   </nav>
-
-  <!-- Settings -->
-  <div class="px-3 py-3 border-t border-white/5">
-    <a
-      href="/settings"
-      class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200"
-      style="
-        font-size: 13.5px;
-        color: {isActive('/settings') ? '#ffffff' : 'rgba(229,231,235,0.65)'};
-        background: {isActive('/settings') ? 'rgba(212,118,60,0.18)' : 'transparent'};
-        border-left: {isActive('/settings') ? '3px solid #D4763C' : '3px solid transparent'};
-      "
-    >
-      <i
-        class="iconfont icon-setting text-base flex-shrink-0"
-        style="color: {isActive('/settings') ? '#D4763C' : 'rgba(229,231,235,0.5)'};"
-      ></i>
-      <span class="font-medium">系统设置</span>
-    </a>
-  </div>
 
   <!-- User Info -->
   <div class="px-4 py-4 border-t border-white/5">

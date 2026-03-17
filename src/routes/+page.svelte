@@ -17,6 +17,7 @@
   })
 
   let loading = $state(true)
+  let error = $state('')
 
   onMount(async () => {
     try {
@@ -26,9 +27,12 @@
         if (json.success && json.data) {
           stats = json.data
         }
+      } else {
+        error = '加载统计数据失败'
       }
-    } catch {
-      // Use defaults on error
+    } catch (e) {
+      console.error('Stats load failed:', e)
+      error = '加载统计数据失败'
     } finally {
       loading = false
     }
@@ -55,6 +59,21 @@
     <h1 class="font-semibold" style="font-size: 16px; color: #1A1D23;">工作台</h1>
     <p class="text-sm mt-1" style="color: #6B7280;">欢迎回来，李明辉。以下是今日概况。</p>
   </div>
+
+  <!-- Error Alert -->
+  {#if error}
+    <div
+      class="px-4 py-3 rounded-xl text-sm flex items-center gap-2"
+      style="background: rgba(199,84,80,0.08); border: 1px solid rgba(199,84,80,0.2); color: #C75450;"
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      {error}
+    </div>
+  {/if}
 
   <!-- Stats Grid -->
   <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">

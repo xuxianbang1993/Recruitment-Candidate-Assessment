@@ -15,8 +15,8 @@
     try {
       const res = await fetch('/api/jobs')
       if (res.ok) {
-        const data = await res.json()
-        jobs = data.jobs ?? data ?? []
+        const json = await res.json()
+        jobs = json.success ? (json.data ?? []) : []
       }
     } catch {
       // silently ignore
@@ -38,13 +38,12 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        saveError = err.message ?? '保存失败，请重试'
+      const result = await res.json()
+      if (!res.ok || !result.success) {
+        saveError = result.error ?? result.message ?? '保存失败，请重试'
         return
       }
-      const result = await res.json()
-      const savedJob: Job = result.job ?? result
+      const savedJob: Job = result.data ?? result.job ?? result
 
       if (isEdit) {
         jobs = jobs.map(j => j.id === savedJob.id ? savedJob : j)
@@ -61,6 +60,7 @@
   }
 
   async function handleDelete(id: string) {
+    if (!confirm('确定要删除该岗位吗？此操作不可撤销。')) return
     try {
       const res = await fetch(`/api/jobs/${id}`, { method: 'DELETE' })
       if (res.ok) {
@@ -152,6 +152,7 @@
       </h2>
       <button
         onclick={cancelForm}
+        aria-label="关闭表单"
         class="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:opacity-70"
         style="color: #6B7280;"
       >
@@ -265,6 +266,7 @@
             </button>
             <button
               onclick={() => handleDelete(job.id)}
+              aria-label={`删除岗位 ${job.title}`}
               class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 hover:opacity-80"
               style="background: rgba(199,84,80,0.08); color: #C75450; border: 1px solid rgba(199,84,80,0.2);"
             >

@@ -15,10 +15,7 @@
     '/settings': ['系统设置'],
   }
 
-  function getBreadcrumbs(): string[] {
-    const path = $page.url.pathname
-    return breadcrumbMap[path] ?? [path.replace('/', '')]
-  }
+  let breadcrumbs = $derived(breadcrumbMap[$page.url.pathname] ?? [$page.url.pathname.replace('/', '')])
 </script>
 
 <div class="flex h-screen overflow-hidden">
@@ -38,10 +35,10 @@
       <!-- Breadcrumb -->
       <div class="flex items-center gap-2 text-sm">
         <span style="color: #6B7280;">智聘评估</span>
-        {#each getBreadcrumbs() as crumb, i}
+        {#each breadcrumbs as crumb, i}
           <span style="color: #6B7280;">/</span>
           <span
-            style="color: {i === getBreadcrumbs().length - 1 ? '#1A1D23' : '#6B7280'}; font-weight: {i === getBreadcrumbs().length - 1 ? '600' : '400'};"
+            style="color: {i === breadcrumbs.length - 1 ? '#1A1D23' : '#6B7280'}; font-weight: {i === breadcrumbs.length - 1 ? '600' : '400'};"
           >
             {crumb}
           </span>
@@ -54,6 +51,7 @@
           class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
           style="background: #F7F5F2; color: #6B7280; border: 1px solid #E8E5E0;"
           title="通知"
+          aria-label="通知"
         >
           <i class="iconfont icon-notification text-sm"></i>
         </button>
@@ -61,6 +59,7 @@
           class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
           style="background: #F7F5F2; color: #6B7280; border: 1px solid #E8E5E0;"
           title="帮助"
+          aria-label="帮助"
         >
           <i class="iconfont icon-help text-sm"></i>
         </button>

@@ -2,6 +2,7 @@
   import { Chart, registerables } from 'chart.js'
   import { onMount } from 'svelte'
 
+  // Chart.register is idempotent — safe to call multiple times
   Chart.register(...registerables)
 
   let { scores, candidateName }: {
@@ -11,6 +12,15 @@
 
   let canvas: HTMLCanvasElement
   let chart: Chart | null = null
+
+  $effect(() => {
+    if (chart && scores && scores.length > 0) {
+      chart.data.labels = scores.map(s => s.name)
+      chart.data.datasets[0].data = scores.map(s => s.score)
+      chart.data.datasets[0].label = candidateName
+      chart.update()
+    }
+  })
 
   onMount(() => {
     chart = new Chart(canvas, {
@@ -67,4 +77,4 @@
   })
 </script>
 
-<canvas bind:this={canvas}></canvas>
+<canvas bind:this={canvas} aria-label={candidateName + ' 能力雷达图'}></canvas>

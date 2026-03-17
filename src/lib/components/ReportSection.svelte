@@ -18,7 +18,7 @@
     ></span>
     {title}
   </h3>
-  <div class="text-sm leading-relaxed whitespace-pre-wrap" style="color: #374151;">
+  <div class="text-sm leading-relaxed whitespace-pre-wrap" style="color: #6B7280;">
     {content}
   </div>
 </div>

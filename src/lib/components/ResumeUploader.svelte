@@ -1,5 +1,7 @@
 <script lang="ts">
-  let { onupload }: { onupload: (candidate: unknown) => void } = $props()
+  import type { Candidate } from '$lib/types'
+
+  let { onupload }: { onupload: (candidate: Candidate) => void } = $props()
 
   let isDragOver = $state(false)
   let isUploading = $state(false)
@@ -58,7 +60,7 @@
         return
       }
       const data = await res.json()
-      onupload(data.candidate ?? data)
+      onupload(data.candidate ?? data as Candidate)
     } catch {
       uploadError = '网络错误，请检查连接后重试'
     } finally {

@@ -7,6 +7,7 @@
 
   let inputValue = $state('')
   let focused = $state(false)
+  let inputRef: HTMLInputElement
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter' && inputValue.trim()) {
@@ -22,6 +23,8 @@
   }
 </script>
 
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
   class="flex flex-wrap items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 cursor-text"
   style="
@@ -30,10 +33,7 @@
     min-height: 42px;
     box-shadow: {focused ? '0 0 0 3px rgba(212,118,60,0.12)' : 'none'};
   "
-  onclick={() => {
-    const el = document.querySelector('.skill-input') as HTMLInputElement
-    el?.focus()
-  }}
+  onclick={() => inputRef?.focus()}
   role="group"
 >
   {#each skills as skill}
@@ -63,6 +63,7 @@
   {/each}
 
   <input
+    bind:this={inputRef}
     class="skill-input flex-1 min-w-20 bg-transparent outline-none text-sm"
     style="color: #1A1D23; border: none;"
     placeholder={skills.length === 0 ? '输入技能后按回车添加...' : ''}

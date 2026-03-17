@@ -32,11 +32,11 @@
   }
 
   async function handleSend(text: string) {
-    messages.push({
+    messages = [...messages, {
       role: 'user',
       content: text,
       timestamp: formatTime(new Date()),
-    })
+    }]
     await scrollToBottom()
 
     loading = true
@@ -55,24 +55,24 @@
 
       const json = await res.json()
       if (res.ok && json.success) {
-        messages.push({
+        messages = [...messages, {
           role: 'assistant',
           content: json.data?.reply ?? '收到，正在处理...',
           timestamp: formatTime(new Date()),
-        })
+        }]
       } else {
-        messages.push({
+        messages = [...messages, {
           role: 'assistant',
           content: json.error ?? '抱歉，服务暂时不可用，请稍后再试。',
           timestamp: formatTime(new Date()),
-        })
+        }]
       }
     } catch {
-      messages.push({
+      messages = [...messages, {
         role: 'assistant',
         content: '网络错误，请检查连接后重试。',
         timestamp: formatTime(new Date()),
-      })
+      }]
     } finally {
       loading = false
       await scrollToBottom()
@@ -149,18 +149,8 @@
       {#each suggestions as s}
         <button
           onclick={() => handleSend(s)}
-          class="px-3 py-1.5 rounded-lg text-xs transition-all duration-200"
+          class="px-3 py-1.5 rounded-lg text-xs transition-all duration-200 hover:border-[#D4763C] hover:text-[#D4763C]"
           style="background: #FFFFFF; border: 1px solid #E8E5E0; color: #6B7280;"
-          onmouseenter={(e) => {
-            const el = e.currentTarget as HTMLElement
-            el.style.borderColor = '#D4763C'
-            el.style.color = '#D4763C'
-          }}
-          onmouseleave={(e) => {
-            const el = e.currentTarget as HTMLElement
-            el.style.borderColor = '#E8E5E0'
-            el.style.color = '#6B7280'
-          }}
         >
           {s}
         </button>
