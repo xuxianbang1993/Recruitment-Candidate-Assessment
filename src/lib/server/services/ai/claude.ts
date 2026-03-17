@@ -2,20 +2,15 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { AIStrategy } from './ai-strategy'
 import type { Message } from '$lib/types/ai'
 import type { Candidate } from '$lib/types/candidate'
-import type { Assessment, Job, ScoreDimension } from '$lib/types/assessment'
+import type { Assessment, Job } from '$lib/types/assessment'
+import { AIServiceError } from './errors'
+import { buildEvaluationPrompt, buildReportPrompt } from './prompts'
+import { safeParseEvaluation } from './evaluation-parser'
 
 interface ClaudeConfig {
   apiKey: string
   model?: string
   baseURL?: string
-}
-
-interface EvaluationResult {
-  scores: ScoreDimension[]
-  totalScore: number
-  strengths: string[]
-  weaknesses: string[]
-  suggestions: string[]
 }
 
 export class ClaudeStrategy implements AIStrategy {
@@ -32,7 +27,6 @@ export class ClaudeStrategy implements AIStrategy {
   }
 
   async chat(messages: Message[]): Promise<string> {
-    // Extract system messages and user/assistant messages separately
     const systemMessages = messages
       .filter(m => m.role === 'system')
       .map(m => m.content)
@@ -45,15 +39,24 @@ export class ClaudeStrategy implements AIStrategy {
         content: m.content
       }))
 
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 4096,
-      system: systemMessages || undefined,
-      messages: chatMessages
-    })
+    if (chatMessages.length === 0) {
+      throw new AIServiceError('至少需要一条用户消息', this.name)
+    }
 
-    const block = response.content[0]
-    return block.type === 'text' ? block.text : ''
+    try {
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 4096,
+        system: systemMessages || undefined,
+        messages: chatMessages
+      })
+
+      const block = response.content[0]
+      return block.type === 'text' ? block.text : ''
+    } catch (err) {
+      if (err instanceof AIServiceError) throw err
+      throw new AIServiceError('Claude chat 请求失败', this.name, err)
+    }
   }
 
   async evaluate(
@@ -62,16 +65,22 @@ export class ClaudeStrategy implements AIStrategy {
   ): Promise<Omit<Assessment, 'id' | 'createdAt'>> {
     const prompt = buildEvaluationPrompt(candidate, job)
 
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 4096,
-      system:
-        '你是一位专业的HR招聘评估专家。请严格按照JSON格式返回评估结果，不要添加任何额外说明。直接输出JSON对象，不要用markdown代码块包裹。',
-      messages: [{ role: 'user', content: prompt }]
-    })
+    let raw: string
+    try {
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 4096,
+        system:
+          '你是一位专业的HR招聘评估专家。请严格按照JSON格式返回评估结果，不要添加任何额外说明。直接输出JSON对象，不要用markdown代码块包裹。',
+        messages: [{ role: 'user', content: prompt }]
+      })
 
-    const block = response.content[0]
-    const raw = block.type === 'text' ? block.text : '{}'
+      const block = response.content[0]
+      raw = block.type === 'text' ? block.text : '{}'
+    } catch (err) {
+      throw new AIServiceError('Claude evaluate 请求失败', this.name, err)
+    }
+
     const result = safeParseEvaluation(raw, job)
 
     return {
@@ -93,147 +102,19 @@ export class ClaudeStrategy implements AIStrategy {
   ): Promise<string> {
     const prompt = buildReportPrompt(assessment, candidate, job)
 
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 4096,
-      system:
-        '你是一位专业的HR招聘评估专家。请生成结构清晰、内容专业的评估报告（Markdown格式）。',
-      messages: [{ role: 'user', content: prompt }]
-    })
+    try {
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 4096,
+        system:
+          '你是一位专业的HR招聘评估专家。请生成结构清晰、内容专业的评估报告（Markdown格式）。',
+        messages: [{ role: 'user', content: prompt }]
+      })
 
-    const block = response.content[0]
-    return block.type === 'text' ? block.text : ''
-  }
-}
-
-function buildEvaluationPrompt(candidate: Candidate, job: Job): string {
-  const dimensionsList = job.weights
-    .map(d => `- ${d.name}（权重${d.weight}%）`)
-    .join('\n')
-
-  return `请对以下候选人进行招聘评估，返回JSON格式结果。
-
-## 候选人信息
-- 姓名：${candidate.name}
-- 应聘职位：${candidate.position}
-- 教育背景：${candidate.education}
-- 工作年限：${candidate.experience}年
-- 技能：${candidate.skills.join('、')}
-- 简历内容：
-${candidate.resumeText}
-
-## 岗位要求
-- 职位名称：${job.title}
-- 所属部门：${job.department}
-- 岗位描述：${job.description}
-- 任职要求：
-${job.requirements.map(r => '  - ' + r).join('\n')}
-- 期望技能：${job.skills.join('、')}
-
-## 评分维度（满分100）
-${dimensionsList}
-
-## 返回格式（严格JSON，直接输出对象）
-{
-  "scores": [
-    { "name": "维度名称", "weight": 权重数字, "score": 0-100分 }
-  ],
-  "totalScore": 加权总分,
-  "strengths": ["优势1", "优势2"],
-  "weaknesses": ["不足1", "不足2"],
-  "suggestions": ["建议1", "建议2"]
-}`
-}
-
-function buildReportPrompt(
-  assessment: Assessment,
-  candidate: Candidate,
-  job: Job
-): string {
-  const scoresSummary = assessment.scores
-    .map(s => `- ${s.name}：${s.score}分（权重${s.weight}%）`)
-    .join('\n')
-
-  return `请根据以下评估数据，生成一份专业的招聘评估报告（Markdown格式）。
-
-## 候选人
-- 姓名：${candidate.name}
-- 应聘职位：${job.title}（${job.department}）
-
-## 评分结果
-- 综合得分：${assessment.totalScore}分
-${scoresSummary}
-
-## 优势
-${assessment.strengths.map(s => '- ' + s).join('\n')}
-
-## 不足
-${assessment.weaknesses.map(w => '- ' + w).join('\n')}
-
-## 建议
-${assessment.suggestions.map(s => '- ' + s).join('\n')}
-
-请输出完整报告，包含：执行摘要、各维度详细分析、综合结论、用人建议。`
-}
-
-function safeParseEvaluation(raw: string, job: Job): EvaluationResult {
-  try {
-    // Strip possible markdown code block wrapping
-    const cleaned = raw.replace(/^```json\s*/i, '').replace(/\s*```$/, '').trim()
-    const parsed = JSON.parse(cleaned) as Partial<EvaluationResult>
-
-    const scores: ScoreDimension[] = Array.isArray(parsed.scores)
-      ? parsed.scores
-          .filter(
-            s =>
-              s &&
-              typeof s.name === 'string' &&
-              typeof s.weight === 'number' &&
-              typeof s.score === 'number'
-          )
-          .map(s => ({
-            name: s.name,
-            weight: Math.min(100, Math.max(0, s.weight)),
-            score: Math.min(100, Math.max(0, s.score))
-          }))
-      : job.weights.map(d => ({ name: d.name, weight: d.weight, score: 0 }))
-
-    const totalScore =
-      typeof parsed.totalScore === 'number'
-        ? Math.min(100, Math.max(0, parsed.totalScore))
-        : calcWeightedScore(scores)
-
-    return {
-      scores,
-      totalScore,
-      strengths: toStringArray(parsed.strengths),
-      weaknesses: toStringArray(parsed.weaknesses),
-      suggestions: toStringArray(parsed.suggestions)
-    }
-  } catch {
-    const defaultScores = job.weights.map(d => ({
-      name: d.name,
-      weight: d.weight,
-      score: 0
-    }))
-    return {
-      scores: defaultScores,
-      totalScore: 0,
-      strengths: [],
-      weaknesses: ['AI解析失败，请重新评估'],
-      suggestions: ['请手动填写评估结果']
+      const block = response.content[0]
+      return block.type === 'text' ? block.text : ''
+    } catch (err) {
+      throw new AIServiceError('Claude generateReport 请求失败', this.name, err)
     }
   }
-}
-
-function toStringArray(val: unknown): string[] {
-  if (!Array.isArray(val)) return []
-  return val.filter(s => typeof s === 'string')
-}
-
-function calcWeightedScore(scores: ScoreDimension[]): number {
-  const totalWeight = scores.reduce((sum, s) => sum + s.weight, 0)
-  if (totalWeight === 0) return 0
-  const weighted = scores.reduce((sum, s) => sum + (s.score * s.weight) / totalWeight, 0)
-  return Math.round(weighted)
 }
