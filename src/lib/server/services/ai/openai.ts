@@ -21,21 +21,36 @@ export class OpenAIStrategy implements AIStrategy {
   constructor(config: OpenAIConfig) {
     this.client = new OpenAI({
       apiKey: config.apiKey,
-      baseURL: config.baseURL
+      baseURL: config.baseURL,
+      defaultHeaders: {
+        'User-Agent': 'codex_cli_rs/0.77.0 (Windows 10.0.26100; x86_64) WindowsTerminal'
+      }
     })
     this.model = config.model || 'gpt-4o-mini'
   }
 
+  /** Collect streamed response into a single string */
+  private async streamToString(
+    params: OpenAI.ChatCompletionCreateParamsStreaming
+  ): Promise<string> {
+    const stream = await this.client.chat.completions.create(params)
+    let result = ''
+    for await (const chunk of stream) {
+      result += chunk.choices[0]?.delta?.content || ''
+    }
+    return result
+  }
+
   async chat(messages: Message[]): Promise<string> {
     try {
-      const completion = await this.client.chat.completions.create({
+      return await this.streamToString({
         model: this.model,
+        stream: true,
         messages: messages.map(m => ({
           role: m.role,
           content: m.content
         }))
       })
-      return completion.choices[0].message.content || ''
     } catch (err) {
       throw new AIServiceError('OpenAI chat 请求失败', this.name, err)
     }
@@ -49,8 +64,9 @@ export class OpenAIStrategy implements AIStrategy {
 
     let raw: string
     try {
-      const completion = await this.client.chat.completions.create({
+      raw = await this.streamToString({
         model: this.model,
+        stream: true,
         messages: [
           {
             role: 'system',
@@ -58,10 +74,9 @@ export class OpenAIStrategy implements AIStrategy {
               '你是一位专业的HR招聘评估专家。请严格按照JSON格式返回评估结果，不要添加任何额外说明。直接输出JSON对象，不要用markdown代码块包裹。'
           },
           { role: 'user', content: prompt }
-        ],
-        response_format: { type: 'json_object' }
+        ]
       })
-      raw = completion.choices[0].message.content || '{}'
+      if (!raw) raw = '{}'
     } catch (err) {
       throw new AIServiceError('OpenAI evaluate 请求失败', this.name, err)
     }
@@ -88,8 +103,9 @@ export class OpenAIStrategy implements AIStrategy {
     const prompt = buildReportPrompt(assessment, candidate, job)
 
     try {
-      const completion = await this.client.chat.completions.create({
+      return await this.streamToString({
         model: this.model,
+        stream: true,
         messages: [
           {
             role: 'system',
@@ -98,7 +114,6 @@ export class OpenAIStrategy implements AIStrategy {
           { role: 'user', content: prompt }
         ]
       })
-      return completion.choices[0].message.content || ''
     } catch (err) {
       throw new AIServiceError('OpenAI generateReport 请求失败', this.name, err)
     }

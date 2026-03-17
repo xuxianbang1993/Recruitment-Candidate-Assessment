@@ -29,7 +29,7 @@
       class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
       style="background: {iconBg};"
     >
-      <i class="iconfont {icon} text-lg" style="color: {iconColor};"></i>
+      <span style="color: {iconColor}; display: flex; align-items: center;">{@html icon}</span>
     </div>
   {/if}
   <div class="min-w-0">

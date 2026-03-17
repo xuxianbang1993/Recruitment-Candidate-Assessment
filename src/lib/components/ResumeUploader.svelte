@@ -50,17 +50,30 @@
     try {
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('createCandidate', 'true')
       const res = await fetch('/api/resume/upload', {
         method: 'POST',
         body: formData,
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        uploadError = data.message ?? '上传失败，请重试'
+        uploadError = data.error ?? '上传失败，请重试'
         return
       }
-      const data = await res.json()
-      onupload(data.candidate ?? data as Candidate)
+      const json = await res.json()
+      if (json.success && json.data?.candidateId) {
+        // Fetch the created candidate to get full object
+        const candidateRes = await fetch(`/api/candidates/${json.data.candidateId}`)
+        if (candidateRes.ok) {
+          const candidateJson = await candidateRes.json()
+          const candidate = candidateJson.success ? candidateJson.data : candidateJson
+          onupload(candidate)
+        } else {
+          onupload({ id: json.data.candidateId, name: file.name.replace(/\.[^.]+$/, '') } as Candidate)
+        }
+      } else {
+        uploadError = json.error ?? '上传失败'
+      }
     } catch {
       uploadError = '网络错误，请检查连接后重试'
     } finally {

@@ -1,0 +1,37 @@
+appId: com.szomk.zhipinpinggu
+productName: 智聘评估
+copyright: Copyright © 2026
+
+directories:
+  output: dist
+  buildResources: build-resources
+
+files:
+  - build/**/*
+  - electron/**/*
+  - package.json
+  - node_modules/**/*
+
+extraMetadata:
+  main: electron/main.js
+
+asar: true
+asarUnpack:
+  - "**/node_modules/better-sqlite3/**"
+  - "**/node_modules/bindings/**"
+
+npmRebuild: true
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: static/favicon.png
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  installerIcon: static/favicon.png
+  uninstallerIcon: static/favicon.png

@@ -38,11 +38,20 @@
     }
   })
 
+  const svgResume = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>'
+  const svgJob = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>'
+  const svgAnalysis = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>'
+  const svgScore = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+  const svgUpload = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>'
+  const svgAddCircle = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>'
+  const svgAi = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+  const svgReport = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>'
+
   const quickActions = [
-    { label: '上传简历', href: '/candidates', icon: 'icon-upload', desc: '支持 PDF / Word / TXT' },
-    { label: '创建岗位', href: '/assessment', icon: 'icon-add-circle', desc: '定义岗位要求与权重' },
-    { label: 'AI 智能分析', href: '/assessment/results', icon: 'icon-ai', desc: '批量评估候选人' },
-    { label: '查看报告', href: '/reports', icon: 'icon-report', desc: '生成详细匹配报告' },
+    { label: '上传简历', href: '/candidates', icon: svgUpload, desc: '支持 PDF / Word / TXT' },
+    { label: '创建岗位', href: '/assessment', icon: svgAddCircle, desc: '定义岗位要求与权重' },
+    { label: 'AI 智能分析', href: '/assessment/results', icon: svgAi, desc: '批量评估候选人' },
+    { label: '查看报告', href: '/reports', icon: svgReport, desc: '生成详细匹配报告' },
   ]
 
   const guide = [
@@ -81,28 +90,28 @@
       label="候选人总数"
       value={loading ? '—' : stats.totalCandidates}
       sub="累计上传简历"
-      icon="icon-resume"
+      icon={svgResume}
       color="accent"
     />
     <StatCard
       label="岗位需求"
       value={loading ? '—' : stats.totalJobs}
       sub="已创建岗位"
-      icon="icon-job"
+      icon={svgJob}
       color="info"
     />
     <StatCard
       label="完成评估"
       value={loading ? '—' : stats.totalAssessments}
       sub="AI 评估记录"
-      icon="icon-analysis"
+      icon={svgAnalysis}
       color="success"
     />
     <StatCard
       label="平均匹配分"
       value={loading ? '—' : stats.avgScore > 0 ? stats.avgScore.toFixed(1) : '—'}
       sub="综合评分均值"
-      icon="icon-score"
+      icon={svgScore}
       color="warning"
     />
   </div>
@@ -131,9 +140,9 @@
         >
           <div
             class="w-9 h-9 rounded-lg flex items-center justify-center"
-            style="background: rgba(212,118,60,0.08);"
+            style="background: rgba(212,118,60,0.08); color: #D4763C;"
           >
-            <i class="iconfont {action.icon} text-base" style="color: #D4763C;"></i>
+            {@html action.icon}
           </div>
           <div>
             <div class="text-sm font-medium" style="color: #1A1D23;">{action.label}</div>

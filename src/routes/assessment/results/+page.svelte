@@ -40,15 +40,15 @@
       ])
       if (aRes.ok) {
         const d = await aRes.json()
-        assessments = d.assessments ?? d ?? []
+        assessments = d.success ? (d.data ?? []) : []
       }
       if (cRes.ok) {
         const d = await cRes.json()
-        candidates = d.candidates ?? d ?? []
+        candidates = d.success ? (d.data ?? []) : []
       }
       if (jRes.ok) {
         const d = await jRes.json()
-        jobs = d.jobs ?? d ?? []
+        jobs = d.success ? (d.data ?? []) : []
         if (jobs.length > 0 && !selectedJobId) {
           selectedJobId = jobs[0].id
         }
@@ -61,21 +61,35 @@
   }
 
   async function handleEvaluate() {
-    if (!selectedJobId) return
+    if (!selectedJobId || candidates.length === 0) return
     evalError = ''
     evaluating = true
+    let successCount = 0
+    let failCount = 0
     try {
-      const res = await fetch('/api/ai/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId: selectedJobId }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        evalError = err.message ?? '评估失败，请重试'
-        return
+      for (const candidate of candidates) {
+        try {
+          const res = await fetch('/api/ai/evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ candidateId: candidate.id, jobId: selectedJobId }),
+          })
+          if (res.ok) {
+            successCount++
+          } else {
+            failCount++
+            const err = await res.json().catch(() => ({}))
+            console.error(`评估 ${candidate.name} 失败:`, err.error)
+          }
+        } catch {
+          failCount++
+        }
       }
-      // Refresh assessments after evaluation
+      if (failCount > 0 && successCount === 0) {
+        evalError = '评估失败，请检查 AI 配置后重试'
+      } else if (failCount > 0) {
+        evalError = `${successCount} 人评估成功，${failCount} 人失败`
+      }
       await fetchData()
     } catch {
       evalError = '网络错误，请重试'
