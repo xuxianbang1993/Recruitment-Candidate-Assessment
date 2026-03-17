@@ -14,6 +14,12 @@
   --color-danger: #C75450;
   --color-info: #4A7FC7;
   --color-border: #E8E5E0;
+  --color-text-sidebar: #E5E7EB;
+  --color-accent-bg: rgba(212,118,60,0.08);
+  --color-success-bg: rgba(59,155,109,0.08);
+  --color-warning-bg: rgba(212,150,60,0.08);
+  --color-danger-bg: rgba(199,84,80,0.08);
+  --color-info-bg: rgba(74,127,199,0.08);
   --font-sans: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: 'Playfair Display', serif;
 }
