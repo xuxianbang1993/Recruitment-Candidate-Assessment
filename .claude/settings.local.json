@@ -1,10 +1,38 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
-      "WebFetch(domain:www.runoob.com)",
-      "Bash(curl:*)",
+      "Bash(cd *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(git *)",
+      "Bash(node *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "Bash(touch *)",
+      "Bash(cat *)",
+      "Bash(echo *)",
+      "Bash(rm *)",
+      "Bash(curl *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(wc *)",
+      "Bash(test *)",
+      "Bash(export *)",
+      "Bash(pwd)",
+      "Write",
+      "Edit",
       "WebSearch",
-      "Bash(cd:*)"
+      "WebFetch",
+      "mcp__plugin_claude-mem_mcp-search__smart_outline"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf C:*)"
     ]
   }
 }
