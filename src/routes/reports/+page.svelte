@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import ReportSection from '$lib/components/ReportSection.svelte'
-  import type { Candidate, Assessment } from '$lib/types'
+  import VisualReport from '$lib/components/VisualReport.svelte'
+  import type { Candidate, Assessment, Job } from '$lib/types'
 
   let candidates = $state<Candidate[]>([])
   let selectedCandidateId = $state<string>('')
@@ -9,6 +9,7 @@
   let selectedAssessmentId = $state<string>('')
   let reportText = $state<string>('')
   let reportScore = $state<number | null>(null)
+  let selectedJob = $state<Job | null>(null)
   let loadingCandidates = $state(false)
   let loadingAssessments = $state(false)
   let generating = $state(false)
@@ -71,7 +72,17 @@
         reportText = json.data?.report ?? ''
         // Score from the assessment itself
         const found = assessments.find((a) => a.id === selectedAssessmentId)
-        if (found) reportScore = found.totalScore
+        if (found) {
+          reportScore = found.totalScore
+          // Fetch job data for visual report
+          try {
+            const jobRes = await fetch(`/api/jobs/${found.jobId}`)
+            if (jobRes.ok) {
+              const jobJson = await jobRes.json()
+              if (jobJson.success) selectedJob = jobJson.data
+            }
+          } catch { /* ignore */ }
+        }
       } else {
         error = json.error ?? '生成失败，请重试'
       }
@@ -178,33 +189,19 @@
   <!-- Report Content -->
   {#if reportText}
     <div class="space-y-4">
-      <!-- Score Banner -->
-      {#if reportScore !== null}
-        <div
-          class="rounded-xl p-5 flex items-center gap-4"
-          style="background: linear-gradient(135deg, rgba(212,118,60,0.08), rgba(212,118,60,0.04)); border: 1px solid rgba(212,118,60,0.2);"
-        >
-          <div
-            class="w-16 h-16 rounded-2xl flex flex-col items-center justify-center flex-shrink-0"
-            style="background: #D4763C;"
-          >
-            <span class="text-white text-xl font-bold leading-none">{reportScore}</span>
-            <span class="text-white/70 text-xs">分</span>
-          </div>
-          <div>
-            <div class="font-semibold" style="color: #1A1D23;">
-              {selectedCandidate?.name ?? '候选人'} 综合评分
-            </div>
-            <div class="text-xs mt-1" style="color: #6B7280;">
-              {reportScore >= 80 ? '强烈推荐 — 候选人与岗位高度匹配' :
-               reportScore >= 60 ? '建议考虑 — 候选人基本符合要求' :
-               '暂不推荐 — 候选人与岗位匹配度较低'}
-            </div>
-          </div>
+      {#if selectedJob}
+        <VisualReport
+          assessment={assessments.find((a) => a.id === selectedAssessmentId)!}
+          candidate={selectedCandidate!}
+          job={selectedJob}
+          {reportText}
+        />
+      {:else}
+        <!-- Fallback: plain text display -->
+        <div class="rounded-xl p-5" style="background: #FFFFFF; border: 1px solid #E8E5E0;">
+          <div class="report-prose">{@html reportText}</div>
         </div>
       {/if}
-
-      <ReportSection title="AI 分析报告" content={reportText} />
     </div>
   {:else if !generating && candidates.length === 0 && !loadingCandidates}
     <div
