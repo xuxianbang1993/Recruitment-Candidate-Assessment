@@ -60,3 +60,13 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ success: false, error: '服务器内部错误' }, { status: 500 })
   }
 }
+
+export const DELETE: RequestHandler = () => {
+  try {
+    const count = candidateDAO.deleteAll()
+    return json({ success: true, data: { deleted: count } })
+  } catch (e) {
+    console.error('DELETE /api/candidates error:', e)
+    return json({ success: false, error: '服务器内部错误' }, { status: 500 })
+  }
+}

@@ -116,6 +116,12 @@ export class CandidateDAO {
     db.prepare('DELETE FROM candidates WHERE id = ?').run(id);
   }
 
+  deleteAll(): number {
+    const db = getDatabase();
+    const result = db.prepare('DELETE FROM candidates').run();
+    return result.changes;
+  }
+
   search(keyword: string): Candidate[] {
     const db = getDatabase();
     const escaped = keyword.replace(/[%_]/g, '\\$&');
