@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import JobForm from '$lib/components/JobForm.svelte'
   import type { Job } from '$lib/types'
+  import { showConfirm } from '$lib/utils/dialog'
 
   let jobs = $state<Job[]>([])
   let loading = $state(false)
@@ -60,7 +61,7 @@
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('确定要删除该岗位吗？此操作不可撤销。')) return
+    if (!(await showConfirm('确定要删除该岗位吗？此操作不可撤销。'))) return
     try {
       const res = await fetch(`/api/jobs/${id}`, { method: 'DELETE' })
       if (res.ok) {

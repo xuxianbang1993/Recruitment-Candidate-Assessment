@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, session, dialog } from 'electron'
+import { app, BrowserWindow, Menu, session, dialog, ipcMain } from 'electron'
 import { fork } from 'child_process'
 import path from 'path'
 import fs from 'fs'
@@ -151,6 +151,18 @@ async function createWindow() {
 
   mainWindow.on('closed', () => { mainWindow = null })
 }
+
+ipcMain.handle('show-confirm-dialog', async (event, message) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  const result = await dialog.showMessageBox(win, {
+    type: 'question',
+    buttons: ['确认', '取消'],
+    defaultId: 0,
+    cancelId: 1,
+    message,
+  })
+  return result.response === 0
+})
 
 app.on('ready', createWindow)
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })

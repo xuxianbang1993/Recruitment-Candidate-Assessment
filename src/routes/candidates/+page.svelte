@@ -3,6 +3,7 @@
   import ResumeUploader from '$lib/components/ResumeUploader.svelte'
   import CandidateCard from '$lib/components/CandidateCard.svelte'
   import type { Candidate } from '$lib/types'
+  import { showConfirm } from '$lib/utils/dialog'
 
   let candidates = $state<Candidate[]>([])
   let keyword = $state('')
@@ -39,7 +40,7 @@
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('确定要删除该候选人吗？此操作不可撤销。')) return
+    if (!(await showConfirm('确定要删除该候选人吗？此操作不可撤销。'))) return
     try {
       const res = await fetch(`/api/candidates/${id}`, { method: 'DELETE' })
       if (res.ok) {
@@ -57,7 +58,7 @@
   }
 
   async function handleClearAll() {
-    if (!confirm(`确定要清空全部 ${candidates.length} 位候选人吗？此操作不可撤销。`)) return
+    if (!(await showConfirm(`确定要清空全部 ${candidates.length} 位候选人吗？此操作不可撤销。`))) return
     try {
       const res = await fetch('/api/candidates', { method: 'DELETE' })
       if (res.ok) {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Candidate } from '$lib/types'
+  import { showConfirm } from '$lib/utils/dialog'
 
   let { candidate, ondelete, onresumechange }: {
     candidate: Candidate
@@ -36,7 +37,7 @@
   async function handleDeleteResume(e: MouseEvent) {
     e.stopPropagation()
     if (resumeUploading) return
-    if (!confirm('确定要删除该候选人的简历吗？候选人信息将保留。')) return
+    if (!(await showConfirm('确定要删除该候选人的简历吗？候选人信息将保留。'))) return
     try {
       const res = await fetch(`/api/candidates/${candidate.id}/resume`, { method: 'DELETE' })
       if (res.ok) {
@@ -52,7 +53,7 @@
 
   function handleReplaceClick(e: MouseEvent) {
     e.stopPropagation()
-    resumeFileInput.click()
+    if (resumeFileInput) resumeFileInput.click()
   }
 
   async function handleResumeFileChange(e: Event) {
