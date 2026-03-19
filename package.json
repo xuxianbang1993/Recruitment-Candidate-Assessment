@@ -1,7 +1,7 @@
 {
 	"name": "recruitment-assessment",
 	"private": true,
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"type": "module",
 	"main": "electron/main.js",
 	"scripts": {
@@ -12,7 +12,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"electron:dev": "cross-env NODE_ENV=development electron electron/main.js",
-		"electron:build": "npm run build && electron-builder --win",
+		"electron:build": "npm run build && npm run electron:rebuild && electron-builder --win",
 		"electron:rebuild": "electron-rebuild -f -w better-sqlite3"
 	},
 	"overrides": {
@@ -38,6 +38,8 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.79.0",
+		"@fontsource/noto-sans-sc": "^5.2.9",
+		"@fontsource/playfair-display": "^5.2.8",
 		"better-sqlite3": "^12.8.0",
 		"chart.js": "^4.5.1",
 		"mammoth": "^1.12.0",

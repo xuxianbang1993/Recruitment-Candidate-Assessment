@@ -23,7 +23,8 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   const data = body as Record<string, unknown>
-  const sessionId = typeof data.sessionId === 'string' ? data.sessionId : 'default'
+  let sessionId = typeof data.sessionId === 'string' ? data.sessionId : 'default'
+  if (sessionId) sessionId = sessionId.slice(0, 128)
   const allMessages = (data.messages as Array<{ role: unknown; content: unknown }>).map((m) => ({
     role: m.role as Message['role'],
     content: String(m.content)

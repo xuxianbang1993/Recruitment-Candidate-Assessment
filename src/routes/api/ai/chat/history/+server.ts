@@ -3,10 +3,11 @@ import type { RequestHandler } from './$types'
 import { chatHistoryDAO } from '$lib/server/db'
 
 export const GET: RequestHandler = ({ url }) => {
-  const sessionId = url.searchParams.get('sessionId')
+  let sessionId = url.searchParams.get('sessionId')
   if (!sessionId) {
     return json({ success: false, error: 'sessionId is required' }, { status: 400 })
   }
+  if (sessionId) sessionId = sessionId.slice(0, 128)
 
   try {
     const history = chatHistoryDAO.getBySessionId(sessionId)
@@ -18,10 +19,11 @@ export const GET: RequestHandler = ({ url }) => {
 }
 
 export const DELETE: RequestHandler = ({ url }) => {
-  const sessionId = url.searchParams.get('sessionId')
+  let sessionId = url.searchParams.get('sessionId')
   if (!sessionId) {
     return json({ success: false, error: 'sessionId is required' }, { status: 400 })
   }
+  if (sessionId) sessionId = sessionId.slice(0, 128)
 
   try {
     chatHistoryDAO.deleteSession(sessionId)

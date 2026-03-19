@@ -239,4 +239,5 @@
       </div>
     </div>
   </div>
+  <p class="text-xs mt-6" style="color: #9CA3AF;">当前版本: v1.0.0</p>
 </div>

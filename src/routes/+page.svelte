@@ -66,7 +66,7 @@
   <!-- Header -->
   <div>
     <h1 class="font-semibold" style="font-size: 16px; color: #1A1D23;">工作台</h1>
-    <p class="text-sm mt-1" style="color: #6B7280;">欢迎回来，李明辉。以下是今日概况。</p>
+    <p class="text-sm mt-1" style="color: #6B7280;">欢迎回来。以下是今日概况。</p>
   </div>
 
   <!-- Error Alert -->

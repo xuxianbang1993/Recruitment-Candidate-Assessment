@@ -40,7 +40,7 @@
         智
       </div>
       <div>
-        <div class="font-bold text-white text-sm leading-tight" style="font-family: 'Playfair Display', serif;">
+        <div class="font-bold text-white text-sm leading-tight" style="font-family: 'Noto Sans SC', sans-serif; font-weight: 700;">
           智聘评估
         </div>
         <div class="text-white/40 text-xs leading-tight mt-0.5">招聘智能评估系统</div>
@@ -81,11 +81,11 @@
         class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
         style="background: linear-gradient(135deg, #D4763C, #4A7FC7);"
       >
-        李
+        管
       </div>
       <div class="min-w-0">
-        <div class="text-white text-xs font-medium truncate">李明辉</div>
-        <div class="text-white/40 text-xs truncate">招聘经理</div>
+        <div class="text-white text-xs font-medium truncate">管理员</div>
+        <div class="text-white/40 text-xs truncate">招聘评估系统</div>
       </div>
     </div>
   </div>

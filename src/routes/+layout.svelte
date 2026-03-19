@@ -2,6 +2,12 @@
   import Sidebar from '$lib/components/Sidebar.svelte'
   import { page } from '$app/stores'
   import '../app.css'
+  import '@fontsource/noto-sans-sc/400.css'
+  import '@fontsource/noto-sans-sc/500.css'
+  import '@fontsource/noto-sans-sc/600.css'
+  import '@fontsource/noto-sans-sc/700.css'
+  import '@fontsource/playfair-display/600.css'
+  import '@fontsource/playfair-display/700.css'
 
   let { children } = $props()
 
@@ -47,22 +53,6 @@
 
       <!-- Actions -->
       <div class="flex items-center gap-3">
-        <button
-          class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-          style="background: #F7F5F2; color: #6B7280; border: 1px solid #E8E5E0;"
-          title="通知"
-          aria-label="通知"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        </button>
-        <button
-          class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
-          style="background: #F7F5F2; color: #6B7280; border: 1px solid #E8E5E0;"
-          title="帮助"
-          aria-label="帮助"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        </button>
       </div>
     </div>
 
