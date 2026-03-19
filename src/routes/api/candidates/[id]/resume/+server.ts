@@ -9,7 +9,7 @@ export const DELETE: RequestHandler = ({ params }) => {
       return json({ success: false, error: 'Candidate not found' }, { status: 404 })
     }
     candidateDAO.update(params.id, { resumeText: '' })
-    return new Response(null, { status: 204 })
+    return json({ success: true, data: null })
   } catch (e) {
     console.error('DELETE /api/candidates/[id]/resume error:', e)
     return json({ success: false, error: '服务器内部错误' }, { status: 500 })

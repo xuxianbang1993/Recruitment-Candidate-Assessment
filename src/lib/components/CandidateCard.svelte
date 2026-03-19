@@ -35,6 +35,7 @@
 
   async function handleDeleteResume(e: MouseEvent) {
     e.stopPropagation()
+    if (resumeUploading) return
     if (!confirm('确定要删除该候选人的简历吗？候选人信息将保留。')) return
     try {
       const res = await fetch(`/api/candidates/${candidate.id}/resume`, { method: 'DELETE' })
