@@ -52,6 +52,10 @@
     }
   }
 
+  function handleResumeChange(updated: Candidate) {
+    candidates = candidates.map((c) => (c.id === updated.id ? updated : c))
+  }
+
   onMount(() => {
     fetchCandidates()
   })
@@ -159,7 +163,7 @@
 {:else}
   <div class="space-y-3">
     {#each candidates as candidate (candidate.id)}
-      <CandidateCard {candidate} ondelete={handleDelete} />
+      <CandidateCard {candidate} ondelete={handleDelete} onresumechange={handleResumeChange} />
     {/each}
   </div>
 {/if}

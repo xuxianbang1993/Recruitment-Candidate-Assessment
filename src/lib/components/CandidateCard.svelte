@@ -1,12 +1,21 @@
 <script lang="ts">
   import type { Candidate } from '$lib/types'
 
-  let { candidate, ondelete }: {
+  let { candidate, ondelete, onresumechange }: {
     candidate: Candidate
     ondelete: (id: string) => void
+    onresumechange: (updated: Candidate) => void
   } = $props()
 
   let expanded = $state(false)
+  let resumeUploading = $state(false)
+  let resumeError = $state('')
+  let localResume = $state('')
+  let resumeFileInput = $state<HTMLInputElement>(null!)
+
+  $effect(() => {
+    localResume = candidate.resumeText ?? ''
+  })
 
   function getEducationLabel(edu: string): string {
     const map: Record<string, string> = {
@@ -22,6 +31,58 @@
   function handleDelete(e: MouseEvent) {
     e.stopPropagation()
     ondelete(candidate.id)
+  }
+
+  async function handleDeleteResume(e: MouseEvent) {
+    e.stopPropagation()
+    if (!confirm('确定要删除该候选人的简历吗？候选人信息将保留。')) return
+    try {
+      const res = await fetch(`/api/candidates/${candidate.id}/resume`, { method: 'DELETE' })
+      if (res.ok) {
+        localResume = ''
+        onresumechange({ ...candidate, resumeText: '' })
+      } else {
+        resumeError = '删除简历失败，请重试'
+      }
+    } catch {
+      resumeError = '网络错误，请重试'
+    }
+  }
+
+  function handleReplaceClick(e: MouseEvent) {
+    e.stopPropagation()
+    resumeFileInput.click()
+  }
+
+  async function handleResumeFileChange(e: Event) {
+    const target = e.target as HTMLInputElement
+    if (!target.files || target.files.length === 0) return
+    const file = target.files[0]
+    target.value = ''
+    resumeError = ''
+    resumeUploading = true
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('candidateId', candidate.id)
+      const res = await fetch('/api/resume/upload', { method: 'POST', body: formData })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        resumeError = (data as { error?: string }).error ?? '上传失败，请重试'
+        return
+      }
+      const result = await res.json() as { success: boolean; data?: { text?: string }; error?: string }
+      if (result.success) {
+        localResume = result.data?.text ?? ''
+        onresumechange({ ...candidate, resumeText: localResume })
+      } else {
+        resumeError = result.error ?? '上传失败'
+      }
+    } catch {
+      resumeError = '网络错误，请重试'
+    } finally {
+      resumeUploading = false
+    }
   }
 </script>
 
@@ -167,15 +228,62 @@
         {/if}
       </div>
 
-      {#if candidate.resumeText}
+      <!-- 隐藏的文件输入 -->
+      <input
+        bind:this={resumeFileInput}
+        type="file"
+        accept=".pdf,.doc,.docx,.txt"
+        class="hidden"
+        onchange={handleResumeFileChange}
+      />
+
+      {#if resumeError}
+        <div class="mt-3 px-3 py-2 rounded-lg text-xs" style="background: rgba(199,84,80,0.08); color: #C75450; border: 1px solid rgba(199,84,80,0.2);">
+          {resumeError}
+        </div>
+      {/if}
+
+      {#if localResume}
         <div class="mt-3">
-          <p class="text-xs mb-1" style="color: #6B7280;">简历摘要</p>
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs" style="color: #6B7280;">简历摘要</p>
+            <div class="flex items-center gap-1">
+              <button
+                class="text-[11px] px-2 py-0.5 rounded-md transition-all duration-200 hover:opacity-80"
+                style="background: rgba(212,118,60,0.08); color: #D4763C;"
+                onclick={handleReplaceClick}
+                disabled={resumeUploading}
+              >
+                {resumeUploading ? '上传中...' : '重新上传'}
+              </button>
+              <button
+                class="text-[11px] px-2 py-0.5 rounded-md transition-all duration-200 hover:opacity-80"
+                style="background: rgba(199,84,80,0.08); color: #C75450;"
+                onclick={handleDeleteResume}
+                disabled={resumeUploading}
+              >
+                删除简历
+              </button>
+            </div>
+          </div>
           <p
             class="text-xs leading-relaxed p-3 rounded-lg"
             style="background: #F7F5F2; color: #1A1D23; max-height: 100px; overflow-y: auto;"
           >
-            {candidate.resumeText.slice(0, 300)}{candidate.resumeText.length > 300 ? '...' : ''}
+            {localResume.slice(0, 300)}{localResume.length > 300 ? '...' : ''}
           </p>
+        </div>
+      {:else}
+        <div class="mt-3 flex items-center gap-2">
+          <p class="text-xs" style="color: #6B7280;">暂无简历</p>
+          <button
+            class="text-[11px] px-2 py-0.5 rounded-md transition-all duration-200 hover:opacity-80"
+            style="background: rgba(212,118,60,0.08); color: #D4763C;"
+            onclick={handleReplaceClick}
+            disabled={resumeUploading}
+          >
+            {resumeUploading ? '上传中...' : '上传简历'}
+          </button>
         </div>
       {/if}
 
