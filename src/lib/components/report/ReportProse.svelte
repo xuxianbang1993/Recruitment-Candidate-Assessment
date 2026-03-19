@@ -121,4 +121,44 @@
     font-size: 12px;
     color: #1A1D23;
   }
+  /* Table styles — 宽松排版 */
+  .report-prose :global(table) {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 14px 0;
+    font-size: 13px;
+    border: 1px solid #E8E5E0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .report-prose :global(thead) {
+    background: #F7F5F2;
+  }
+  .report-prose :global(th) {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #1A1D23;
+    border-bottom: 1px solid #E8E5E0;
+    white-space: nowrap;
+  }
+  .report-prose :global(td) {
+    padding: 11px 16px;
+    color: #6B7280;
+    border-bottom: 1px solid #F3F1EE;
+    line-height: 1.6;
+  }
+  .report-prose :global(tr:last-child td) {
+    border-bottom: none;
+  }
+  .report-prose :global(tr:hover td) {
+    background: #FAFAF8;
+  }
+  .report-prose :global(tbody tr:last-child td:first-child) {
+    border-bottom-left-radius: 10px;
+  }
+  .report-prose :global(tbody tr:last-child td:last-child) {
+    border-bottom-right-radius: 10px;
+  }
 </style>
