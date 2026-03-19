@@ -19,7 +19,7 @@
       const res = await fetch(url)
       if (res.ok) {
         const data = await res.json()
-        candidates = data.candidates ?? data ?? []
+        candidates = data.data ?? []
       } else {
         error = '加载候选人列表失败'
       }
