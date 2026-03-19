@@ -56,6 +56,20 @@
     candidates = candidates.map((c) => (c.id === updated.id ? updated : c))
   }
 
+  async function handleClearAll() {
+    if (!confirm(`确定要清空全部 ${candidates.length} 位候选人吗？此操作不可撤销。`)) return
+    try {
+      const res = await fetch('/api/candidates', { method: 'DELETE' })
+      if (res.ok) {
+        candidates = []
+      } else {
+        error = '清空失败，请重试'
+      }
+    } catch {
+      error = '清空失败，请重试'
+    }
+  }
+
   onMount(() => {
     fetchCandidates()
   })
@@ -71,11 +85,22 @@
     <h1 class="text-xl font-bold" style="color: #1A1D23;">简历管理</h1>
     <p class="text-sm mt-0.5" style="color: #6B7280;">上传候选人简历，系统自动解析关键信息</p>
   </div>
-  <div
-    class="text-sm px-3 py-1.5 rounded-lg"
-    style="background: rgba(212,118,60,0.08); color: #D4763C;"
-  >
-    共 {candidates.length} 位候选人
+  <div class="flex items-center gap-2">
+    <div
+      class="text-sm px-3 py-1.5 rounded-lg"
+      style="background: rgba(212,118,60,0.08); color: #D4763C;"
+    >
+      共 {candidates.length} 位候选人
+    </div>
+    {#if candidates.length > 0}
+      <button
+        onclick={handleClearAll}
+        class="text-sm px-3 py-1.5 rounded-lg transition-all duration-200 hover:opacity-80"
+        style="background: rgba(199,84,80,0.08); color: #C75450; border: 1px solid rgba(199,84,80,0.15);"
+      >
+        清空全部
+      </button>
+    {/if}
   </div>
 </div>
 
