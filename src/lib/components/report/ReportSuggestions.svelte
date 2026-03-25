@@ -1,8 +1,16 @@
 <script lang="ts">
-  let { suggestions, totalScore }: {
+  import type { ScoreDimension } from '$lib/types/assessment'
+  import { getInterviewTips } from './report-data'
+
+  let { suggestions, totalScore, scores, category }: {
     suggestions: string[]
     totalScore: number
+    scores?: ScoreDimension[]
+    category?: string
   } = $props()
+
+  const interviewTips = $derived(getInterviewTips(category, scores))
+  let showQuestions = $state(false)
 </script>
 
 <div class="section-header">
@@ -35,6 +43,47 @@
       <p>{suggestion}</p>
     {/each}
   </div>
+  {#if interviewTips.length > 0}
+    <div class="interview-section">
+      <button
+        class="interview-toggle"
+        type="button"
+        onclick={() => (showQuestions = !showQuestions)}
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          style="transform: rotate({showQuestions ? 90 : 0}deg);"
+        ><path d="M9 18l6-6-6-6"/></svg>
+        建议面试追问（{interviewTips.filter((tip) => tip.highlight).length} 项重点关注）
+      </button>
+      {#if showQuestions}
+        <div class="interview-list">
+          {#each interviewTips as tip}
+            <div class="interview-dim" class:highlight={tip.highlight}>
+              <div class="interview-dim-header">
+                <span class="interview-dim-name">{tip.name}</span>
+                <span class="interview-dim-score" style="color: {tip.highlight ? '#C75450' : '#6B7280'};">
+                  {tip.score}分{tip.highlight ? ' • 重点关注' : ''}
+                </span>
+              </div>
+              <ol class="interview-questions">
+                {#each tip.questions as question}
+                  <li>{question}</li>
+                {/each}
+              </ol>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -77,4 +126,48 @@
   }
   .rec-text p { margin-bottom: 8px; }
   .rec-text p:last-child { margin-bottom: 0; }
+  .interview-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #F3F1EE;
+  }
+  .interview-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    width: 100%;
+    background: none;
+    border: none;
+    color: #2E75B6;
+    cursor: pointer;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .interview-toggle:hover { color: #1F4E79; }
+  .interview-list { padding-top: 12px; }
+  .interview-dim { margin-bottom: 12px; }
+  .interview-dim.highlight {
+    background: rgba(199,84,80,0.04);
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+  .interview-dim-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .interview-dim-name { font-size: 13px; font-weight: 600; color: #1A1D23; }
+  .interview-dim-score { font-size: 11px; font-weight: 500; }
+  .interview-questions {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 12px;
+    color: #6B7280;
+    line-height: 1.8;
+  }
+  .interview-questions li { margin-bottom: 2px; }
 </style>

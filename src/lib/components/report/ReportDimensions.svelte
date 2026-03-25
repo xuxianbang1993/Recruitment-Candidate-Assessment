@@ -1,8 +1,10 @@
 <script lang="ts">
   import type { ScoreDimension } from '$lib/types/assessment'
+  import { getDimensionDefinition } from './report-data'
 
-  let { scores }: {
+  let { scores, category }: {
     scores: ScoreDimension[]
+    category?: string
   } = $props()
 
   const dimColors = [
@@ -30,6 +32,9 @@
       </div>
       <div class="dim-info">
         <div class="dim-name">{dim.name}</div>
+        {#if getDimensionDefinition(category, dim.name)}
+          <div class="dim-def">{getDimensionDefinition(category, dim.name)}</div>
+        {/if}
         <div class="dim-bar">
           <div class="dim-bar-fill" style="width: {dim.score}%; background: {c.color};"></div>
         </div>
@@ -79,6 +84,7 @@
   }
   .dim-info { flex: 1; min-width: 0; }
   .dim-name { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #1A1D23; }
+  .dim-def { font-size: 11px; color: #9CA3AF; margin-bottom: 6px; line-height: 1.4; }
   .dim-bar {
     height: 6px;
     border-radius: 3px;

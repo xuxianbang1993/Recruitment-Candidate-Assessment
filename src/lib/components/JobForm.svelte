@@ -1,8 +1,16 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { untrack } from 'svelte'
   import SkillTagInput from '$lib/components/SkillTagInput.svelte'
   import WeightSlider from '$lib/components/WeightSlider.svelte'
+  import { cloneWeights, weightsMatch } from '$lib/components/job-form-helpers'
+  import {
+    JOB_CATEGORY_LABELS,
+    JOB_TEMPLATES,
+    templateToWeights,
+    type JobCategory,
+  } from '$lib/config/job-templates'
   import type { Job, ScoreDimension } from '$lib/types'
+  import { showConfirm } from '$lib/utils/dialog'
 
   let { job, onsubmit, oncancel }: {
     job?: Partial<Job>
@@ -13,44 +21,70 @@
   const defaultWeights: ScoreDimension[] = [
     { name: '专业技能', weight: 30, score: 0 },
     { name: '项目经验', weight: 25, score: 0 },
-    { name: '教育背景', weight: 15, score: 0 },
     { name: '沟通能力', weight: 15, score: 0 },
+    { name: '教育背景', weight: 15, score: 0 },
     { name: '团队协作', weight: 10, score: 0 },
     { name: '发展潜力', weight: 5, score: 0 },
   ]
 
-  // Form state initialized from props (intentionally captures initial value only)
   let title = $state(untrack(() => job?.title ?? ''))
   let department = $state(untrack(() => job?.department ?? ''))
-  let experience = $state(untrack(() => job?.requirements?.find(r => r.startsWith('exp:'))?.replace('exp:', '') ?? ''))
-  let education = $state(untrack(() => job?.requirements?.find(r => r.startsWith('edu:'))?.replace('edu:', '') ?? ''))
+  let category = $state(untrack(() => job?.category ?? ''))
+  let experience = $state(
+    untrack(() => job?.requirements?.find((requirement) => requirement.startsWith('exp:'))?.replace('exp:', '') ?? ''),
+  )
+  let education = $state(
+    untrack(() => job?.requirements?.find((requirement) => requirement.startsWith('edu:'))?.replace('edu:', '') ?? ''),
+  )
   let description = $state(untrack(() => job?.description ?? ''))
   let skills = $state<string[]>(untrack(() => job?.skills ?? []))
   let weights = $state<ScoreDimension[]>(
-    untrack(() => job?.weights ?? defaultWeights.map(w => ({ ...w })))
+    untrack(() => cloneWeights(job?.weights ?? defaultWeights)),
+  )
+  let lastAutoWeights = $state<ScoreDimension[]>(
+    untrack(() => cloneWeights(job?.weights ?? defaultWeights)),
   )
 
   let submitting = $state(false)
   let errors = $state<Record<string, string>>({})
 
   function validateForm(): boolean {
-    const newErrors: Record<string, string> = {}
-    if (!title.trim()) newErrors.title = '请输入职位名称'
-    if (!department.trim()) newErrors.department = '请输入部门'
-    errors = newErrors
-    return Object.keys(newErrors).length === 0
+    const nextErrors: Record<string, string> = {}
+    if (!title.trim()) nextErrors.title = '请输入职位名称'
+    if (!department.trim()) nextErrors.department = '请输入部门'
+    errors = nextErrors
+    return Object.keys(nextErrors).length === 0
   }
 
   function totalWeight(): number {
-    return weights.reduce((sum, w) => sum + w.weight, 0)
+    return weights.reduce((sum, weight) => sum + weight.weight, 0)
   }
 
   function updateWeight(index: number, value: number) {
-    weights = weights.map((w, i) => i === index ? { ...w, weight: value } : w)
+    weights = weights.map((weight, currentIndex) =>
+      currentIndex === index ? { ...weight, weight: value } : weight,
+    )
   }
 
-  async function handleSubmit(e: SubmitEvent) {
-    e.preventDefault()
+  async function handleCategoryChange(newCategory: string) {
+    if (!newCategory) {
+      category = ''
+      return
+    }
+
+    if (!weightsMatch(weights, lastAutoWeights)) {
+      const confirmed = await showConfirm('切换岗位类型将重置当前维度和权重，确认继续吗？')
+      if (!confirmed) return
+    }
+
+    const nextWeights = cloneWeights(templateToWeights(newCategory as JobCategory))
+    category = newCategory
+    weights = nextWeights
+    lastAutoWeights = cloneWeights(nextWeights)
+  }
+
+  async function handleSubmit(event: SubmitEvent) {
+    event.preventDefault()
     if (!validateForm()) return
 
     submitting = true
@@ -58,6 +92,7 @@
       const data: Partial<Job> = {
         title: title.trim(),
         department: department.trim(),
+        category,
         description: description.trim(),
         skills,
         weights,
@@ -75,9 +110,30 @@
 </script>
 
 <form onsubmit={handleSubmit} class="space-y-6">
-  <!-- Basic Info -->
+  <div class="flex flex-col gap-1.5 mb-4">
+    <label for="job-category" class="text-sm font-medium" style="color: #1A1D23;">
+      岗位类型
+    </label>
+    <select
+      id="job-category"
+      value={category}
+      onchange={(event) => handleCategoryChange((event.target as HTMLSelectElement).value)}
+      class="px-3 py-2.5 rounded-lg text-sm outline-none cursor-pointer"
+      style="background: #F7F5F2; border: 1px solid #E8E5E0; color: #1A1D23;"
+    >
+      <option value="">请选择岗位类型</option>
+      {#each Object.entries(JOB_CATEGORY_LABELS) as [value, label]}
+        <option {value}>{label}</option>
+      {/each}
+    </select>
+    {#if category && JOB_TEMPLATES[category as JobCategory]}
+      <span class="text-xs" style="color: #6B7280;">
+        适用：{JOB_TEMPLATES[category as JobCategory].description}
+      </span>
+    {/if}
+  </div>
+
   <div class="grid grid-cols-2 gap-4">
-    <!-- Job Title -->
     <div class="flex flex-col gap-1.5">
       <label for="job-title" class="text-sm font-medium" style="color: #1A1D23;">
         职位名称 <span style="color: #C75450;">*</span>
@@ -99,7 +155,6 @@
       {/if}
     </div>
 
-    <!-- Department -->
     <div class="flex flex-col gap-1.5">
       <label for="job-department" class="text-sm font-medium" style="color: #1A1D23;">
         部门 <span style="color: #C75450;">*</span>
@@ -121,7 +176,6 @@
       {/if}
     </div>
 
-    <!-- Experience -->
     <div class="flex flex-col gap-1.5">
       <label for="job-experience" class="text-sm font-medium" style="color: #1A1D23;">工作年限要求</label>
       <select
@@ -140,7 +194,6 @@
       </select>
     </div>
 
-    <!-- Education -->
     <div class="flex flex-col gap-1.5">
       <label for="job-education" class="text-sm font-medium" style="color: #1A1D23;">学历要求</label>
       <select
@@ -158,18 +211,16 @@
     </div>
   </div>
 
-  <!-- Skills -->
   <div class="flex flex-col gap-1.5">
     <span class="text-sm font-medium" style="color: #1A1D23;">技能要求</span>
     <SkillTagInput
       {skills}
-      onadd={(s) => (skills = [...skills, s])}
-      onremove={(s) => (skills = skills.filter(sk => sk !== s))}
+      onadd={(skill) => (skills = [...skills, skill])}
+      onremove={(skill) => (skills = skills.filter((current) => current !== skill))}
     />
     <span class="text-xs" style="color: #6B7280;">输入技能名称后按回车添加</span>
   </div>
 
-  <!-- Description -->
   <div class="flex flex-col gap-1.5">
     <label for="job-description" class="text-sm font-medium" style="color: #1A1D23;">职位描述</label>
     <textarea
@@ -182,7 +233,6 @@
     ></textarea>
   </div>
 
-  <!-- Weights -->
   <div class="flex flex-col gap-3">
     <div class="flex items-center justify-between">
       <span class="text-sm font-medium" style="color: #1A1D23;">评分维度权重</span>
@@ -202,17 +252,16 @@
       class="p-4 rounded-xl space-y-4"
       style="background: #FAFAF8; border: 1px solid #E8E5E0;"
     >
-      {#each weights as w, i}
+      {#each weights as weight, index}
         <WeightSlider
-          name={w.name}
-          weight={w.weight}
-          onchange={(v) => updateWeight(i, v)}
+          name={weight.name}
+          weight={weight.weight}
+          onchange={(value) => updateWeight(index, value)}
         />
       {/each}
     </div>
   </div>
 
-  <!-- Actions -->
   <div class="flex items-center justify-end gap-3 pt-2">
     {#if oncancel}
       <button

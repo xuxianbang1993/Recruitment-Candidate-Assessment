@@ -6,6 +6,7 @@ interface JobRow {
   id: string;
   title: string;
   department: string | null;
+  category: string | null;
   description: string | null;
   requirements: string | null;
   skills: string | null;
@@ -18,6 +19,7 @@ function rowToJob(row: JobRow): Job {
     id: row.id,
     title: row.title,
     department: row.department ?? '',
+    category: row.category ?? '',
     description: row.description ?? '',
     requirements: row.requirements ? (JSON.parse(row.requirements) as string[]) : [],
     skills: row.skills ? (JSON.parse(row.skills) as string[]) : [],
@@ -47,12 +49,13 @@ export class JobDAO {
     const db = getDatabase();
     const id = randomUUID();
     db.prepare(
-      `INSERT INTO jobs (id, title, department, description, requirements, skills, weights)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO jobs (id, title, department, category, description, requirements, skills, weights)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       data.title,
       data.department,
+      data.category ?? '',
       data.description,
       JSON.stringify(data.requirements ?? []),
       JSON.stringify(data.skills ?? []),
@@ -68,6 +71,7 @@ export class JobDAO {
 
     if (data.title !== undefined) { fields.push('title = ?'); values.push(data.title); }
     if (data.department !== undefined) { fields.push('department = ?'); values.push(data.department); }
+    if (data.category !== undefined) { fields.push('category = ?'); values.push(data.category); }
     if (data.description !== undefined) { fields.push('description = ?'); values.push(data.description); }
     if (data.requirements !== undefined) { fields.push('requirements = ?'); values.push(JSON.stringify(data.requirements)); }
     if (data.skills !== undefined) { fields.push('skills = ?'); values.push(JSON.stringify(data.skills)); }

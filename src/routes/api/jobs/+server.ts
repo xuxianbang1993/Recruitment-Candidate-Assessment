@@ -40,6 +40,7 @@ export const POST: RequestHandler = async ({ request }) => {
     const job = jobDAO.create({
       title: String(data.title),
       department: String(data.department),
+      category: typeof data.category === 'string' ? data.category : '',
       description: String(data.description),
       requirements: Array.isArray(data.requirements) ? (data.requirements as unknown[]).map(String) : [],
       skills: Array.isArray(data.skills) ? (data.skills as unknown[]).map(String) : [],

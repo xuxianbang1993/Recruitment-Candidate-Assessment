@@ -21,6 +21,7 @@ export interface Job {
   id: string
   title: string
   department: string
+  category: string
   description: string
   requirements: string[]
   skills: string[]

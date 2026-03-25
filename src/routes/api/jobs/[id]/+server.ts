@@ -38,6 +38,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
 
     if ('title' in data) update.title = String(data.title)
     if ('department' in data) update.department = String(data.department)
+    if ('category' in data) update.category = String(data.category)
     if ('description' in data) update.description = String(data.description)
     if ('requirements' in data && Array.isArray(data.requirements)) {
       update.requirements = (data.requirements as unknown[]).map(String)

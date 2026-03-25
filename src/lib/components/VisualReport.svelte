@@ -78,12 +78,17 @@
   <!-- Dimensions + Suggestions -->
   {#if assessment.scores.length > 0}
     <div class="card span-8 animate-in delay-4">
-      <ReportDimensions scores={assessment.scores} />
+      <ReportDimensions scores={assessment.scores} category={job.category} />
     </div>
   {/if}
   {#if assessment.suggestions.length > 0}
     <div class="card span-4 animate-in delay-5">
-      <ReportSuggestions suggestions={assessment.suggestions} totalScore={assessment.totalScore} />
+      <ReportSuggestions
+        suggestions={assessment.suggestions}
+        totalScore={assessment.totalScore}
+        scores={assessment.scores}
+        category={job.category}
+      />
     </div>
   {/if}
 
