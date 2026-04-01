@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-03-31
+
+### Added
+- `docx ^9.6.1` dependency for Word document generation support
+- `marked ^17.0.4` dependency for Markdown parsing support
+
+### Removed
+- Archived Phase 3 checkpoint and review documents
+
 ## [1.1.0] - 2026-03-25
 
 ### Added
