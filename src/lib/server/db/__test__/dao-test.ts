@@ -9,6 +9,7 @@ import { resetDatabase } from '../database.js'
 import { CandidateDAO } from '../candidate-dao.js'
 import { JobDAO } from '../job-dao.js'
 import { AssessmentDAO } from '../assessment-dao.js'
+import { AttachmentDAO } from '../attachment-dao.js'
 import { SettingsDAO } from '../settings-dao.js'
 import { ChatHistoryDAO } from '../chat-history-dao.js'
 
@@ -190,6 +191,43 @@ assert(history[0].content === 'hello', 'getBySessionId: order correct (ASC)')
 chatHistoryDAO.deleteSession(sessionId)
 const afterDelete = chatHistoryDAO.getBySessionId(sessionId)
 assert(afterDelete.length === 0, 'deleteSession: messages removed')
+
+section('AttachmentDAO')
+const attachmentDAO = new AttachmentDAO()
+
+const assessmentForAttachment = assessmentDAO.create({
+  candidateId: c2.id,
+  jobId: j2.id,
+  type: 'comprehensive',
+  parentId: null,
+  scores: [],
+  totalScore: 0,
+  strengths: [],
+  weaknesses: [],
+  suggestions: [],
+  aiProvider: 'openai',
+})
+
+const newAttachment = attachmentDAO.create({
+  assessmentId: assessmentForAttachment.id,
+  filename: 'resume-1.pdf',
+  originalName: 'resume.pdf',
+  filePath: '/tmp/resume-1.pdf',
+  fileType: 'application/pdf',
+  fileSize: 2048,
+  textContent: 'Resume body text',
+})
+assert(newAttachment.id.length > 0, 'create: returns attachment with id')
+assert(newAttachment.assessmentId === assessmentForAttachment.id, 'create: assessmentId matches')
+assert(newAttachment.textContent === 'Resume body text', 'create: textContent matches')
+
+const attachments = attachmentDAO.getByAssessmentId(assessmentForAttachment.id)
+assert(attachments.length === 1, 'getByAssessmentId: returns 1 attachment')
+assert(attachments[0]?.originalName === 'resume.pdf', 'getByAssessmentId: originalName matches')
+
+attachmentDAO.delete(newAttachment.id)
+const afterAttachmentDelete = attachmentDAO.getByAssessmentId(assessmentForAttachment.id)
+assert(afterAttachmentDelete.length === 0, 'delete: attachment removed')
 
 console.log(`\n${'='.repeat(50)}`)
 console.log(`Results: ${passed} PASS, ${failed} FAIL`)
