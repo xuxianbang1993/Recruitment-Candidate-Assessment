@@ -71,6 +71,8 @@ export class DeepSeekStrategy implements AIStrategy {
     return {
       candidateId: candidate.id,
       jobId: job.id,
+      type: 'initial',
+      parentId: null,
       scores: result.scores,
       totalScore: result.totalScore,
       strengths: result.strengths,

@@ -65,6 +65,8 @@ export const POST: RequestHandler = async ({ request }) => {
     const assessment = assessmentDAO.create({
       candidateId,
       jobId,
+      type: 'initial',
+      parentId: null,
       scores: Array.isArray(data.scores)
         ? (data.scores as Array<{ name: unknown; weight: unknown; score: unknown }>).map((s) => ({
             name: String(s.name),

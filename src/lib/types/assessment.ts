@@ -8,6 +8,8 @@ export interface Assessment {
   weaknesses: string[]
   suggestions: string[]
   aiProvider: string
+  type: 'initial' | 'comprehensive'
+  parentId: string | null
   createdAt: string
 }
 

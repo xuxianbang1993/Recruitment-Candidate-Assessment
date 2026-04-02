@@ -132,6 +132,8 @@ const j2 = jobDAO.create({
 const newAssessment = assessmentDAO.create({
   candidateId: c2.id,
   jobId: j2.id,
+  type: 'initial',
+  parentId: null,
   scores: [{ name: 'Technical Skill', weight: 1, score: 85 }],
   totalScore: 85,
   strengths: ['Strong logic'],
