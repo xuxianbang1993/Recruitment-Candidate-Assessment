@@ -16,6 +16,7 @@
   let evalError = $state('')
   let selectedJobId = $state('')
   let selectedRadarIdx = $state(0)
+  let selectedForCompare = $state<Set<string>>(new Set())
 
   // Sorted assessments by total score descending
   let sortedAssessments = $derived(
@@ -107,6 +108,26 @@
 
   // Radar data for selected candidate
   let radarAssessment = $derived(filteredAssessments[selectedRadarIdx])
+
+  let compareCount = $derived(selectedForCompare.size)
+
+  function toggleCompare(id: string) {
+    const next = new Set(selectedForCompare)
+    if (next.has(id)) {
+      next.delete(id)
+    } else if (next.size < 5) {
+      next.add(id)
+    }
+    selectedForCompare = next
+  }
+
+  function startCompare() {
+    if (compareCount >= 2) activeTab = 'compare'
+  }
+
+  let compareAssessments = $derived(
+    filteredAssessments.filter((a) => selectedForCompare.has(a.id))
+  )
 
   onMount(() => {
     fetchData()
@@ -273,21 +294,45 @@
   {#if activeTab === 'overview'}
     <div class="space-y-3">
       {#each filteredAssessments as a, i}
-        <ScoreCard
-          assessment={a}
-          candidate={getCandidateById(a.candidateId)}
-          rank={i + 1}
-        />
+        <div class="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={selectedForCompare.has(a.id)}
+            onchange={() => toggleCompare(a.id)}
+            disabled={!selectedForCompare.has(a.id) && compareCount >= 5}
+            class="w-4 h-4 rounded accent-[#D4763C] cursor-pointer shrink-0"
+          />
+          <div class="flex-1">
+            <ScoreCard
+              assessment={a}
+              candidate={getCandidateById(a.candidateId)}
+              rank={i + 1}
+            />
+          </div>
+        </div>
       {/each}
     </div>
+
+    <!-- Floating Compare Button -->
+    {#if compareCount >= 2}
+      <div class="fixed bottom-6 right-6 z-50">
+        <button
+          onclick={startCompare}
+          class="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium text-white shadow-lg transition-all duration-200 hover:opacity-90"
+          style="background: var(--color-info, #4A7FC7);"
+        >
+          对比 {compareCount} 人
+        </button>
+      </div>
+    {/if}
 
   <!-- Tab: Compare -->
   {:else if activeTab === 'compare'}
     <div
-      class="rounded-2xl overflow-hidden"
-      style="background: #FFFFFF; border: 1px solid #E8E5E0; box-shadow: 0 1px 3px rgba(0,0,0,0.04);"
+      class="rounded-2xl overflow-x-auto"
+      style="background: #FFFFFF; border: 1px solid #E8E5E0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); max-width: 100%;"
     >
-      <CandidateCompare assessments={filteredAssessments} {candidates} />
+      <CandidateCompare assessments={compareAssessments.length >= 2 ? compareAssessments : filteredAssessments} {candidates} />
     </div>
 
   <!-- Tab: Radar -->
