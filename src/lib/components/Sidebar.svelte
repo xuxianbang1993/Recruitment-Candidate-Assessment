@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page } from '$app/stores'
+  import { page } from '$app/state'
 
   const iconMap: Record<string, string> = {
     dashboard: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
@@ -22,20 +22,20 @@
   ]
 
   function isActive(href: string): boolean {
-    return $page.url.pathname === href
+    return page.url.pathname === href
   }
 </script>
 
 <aside
   class="flex flex-col h-screen w-60 flex-shrink-0"
-  style="background: #1A1D23;"
+  style="background: var(--color-bg-sidebar);"
 >
   <!-- Brand -->
   <div class="px-5 py-6 border-b border-white/5">
     <div class="flex items-center gap-2.5">
       <div
         class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-        style="background: linear-gradient(135deg, #D4763C, #E8945A);"
+        style="background: linear-gradient(135deg, var(--color-accent), var(--color-accent-light));"
       >
         智
       </div>
@@ -60,12 +60,12 @@
           font-size: 13.5px;
           color: {active ? '#ffffff' : 'rgba(229,231,235,0.65)'};
           background: {active ? 'rgba(212,118,60,0.18)' : 'transparent'};
-          border-left: {active ? '3px solid #D4763C' : '3px solid transparent'};
+          border-left: {active ? '3px solid var(--color-accent)' : '3px solid transparent'};
         "
       >
         <span
           class="flex-shrink-0"
-          style="color: {active ? '#D4763C' : 'rgba(229,231,235,0.5)'};"
+          style="color: {active ? 'var(--color-accent)' : 'rgba(229,231,235,0.5)'};"
         >
           {@html iconMap[item.icon]}
         </span>
@@ -79,7 +79,7 @@
     <div class="flex items-center gap-3">
       <div
         class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-        style="background: linear-gradient(135deg, #D4763C, #4A7FC7);"
+        style="background: linear-gradient(135deg, var(--color-accent), var(--color-info));"
       >
         管
       </div>

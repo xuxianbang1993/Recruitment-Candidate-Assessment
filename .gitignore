@@ -29,3 +29,6 @@ vite.config.ts.timestamp-*
 
 # Local demo (not for remote)
 recruitment-assessment.html
+
+# Attachment storage
+data/

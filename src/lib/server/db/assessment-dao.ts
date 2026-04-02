@@ -12,6 +12,8 @@ interface AssessmentRow {
   weaknesses: string | null;
   suggestions: string | null;
   ai_provider: string | null;
+  type: string;
+  parent_id: string | null;
   created_at: string;
 }
 
@@ -26,6 +28,8 @@ function rowToAssessment(row: AssessmentRow): Assessment {
     weaknesses: row.weaknesses ? (JSON.parse(row.weaknesses) as string[]) : [],
     suggestions: row.suggestions ? (JSON.parse(row.suggestions) as string[]) : [],
     aiProvider: row.ai_provider ?? '',
+    type: (row.type as 'initial' | 'comprehensive') ?? 'initial',
+    parentId: row.parent_id ?? null,
     createdAt: row.created_at
   };
 }
@@ -67,8 +71,8 @@ export class AssessmentDAO {
     const db = getDatabase();
     const id = randomUUID();
     db.prepare(
-      `INSERT INTO assessments (id, candidate_id, job_id, scores, total_score, strengths, weaknesses, suggestions, ai_provider)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO assessments (id, candidate_id, job_id, scores, total_score, strengths, weaknesses, suggestions, ai_provider, type, parent_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
       data.candidateId,
@@ -78,7 +82,9 @@ export class AssessmentDAO {
       JSON.stringify(data.strengths ?? []),
       JSON.stringify(data.weaknesses ?? []),
       JSON.stringify(data.suggestions ?? []),
-      data.aiProvider
+      data.aiProvider,
+      data.type ?? 'initial',
+      data.parentId ?? null
     );
     return this.getById(id)!;
   }
@@ -94,6 +100,8 @@ export class AssessmentDAO {
     if (data.weaknesses !== undefined) { fields.push('weaknesses = ?'); values.push(JSON.stringify(data.weaknesses)); }
     if (data.suggestions !== undefined) { fields.push('suggestions = ?'); values.push(JSON.stringify(data.suggestions)); }
     if (data.aiProvider !== undefined) { fields.push('ai_provider = ?'); values.push(data.aiProvider); }
+    if (data.type !== undefined) { fields.push('type = ?'); values.push(data.type); }
+    if (data.parentId !== undefined) { fields.push('parent_id = ?'); values.push(data.parentId); }
 
     if (fields.length === 0) return;
     values.push(id);
