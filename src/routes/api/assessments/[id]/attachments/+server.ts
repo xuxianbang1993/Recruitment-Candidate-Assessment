@@ -1,10 +1,10 @@
-import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { assessmentDAO, attachmentDAO } from '$lib/server/db'
-import { parseResume } from '$lib/server/services/resume'
+import { json } from '@sveltejs/kit'
 import { randomUUID } from 'crypto'
 import { writeFileSync, mkdirSync, unlinkSync } from 'fs'
 import { join } from 'path'
+import { assessmentDAO, attachmentDAO } from '$lib/server/db'
+import { parseResume } from '$lib/server/services/resume'
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 const ATTACHMENTS_DIR = join(process.cwd(), 'data', 'attachments')
@@ -98,6 +98,11 @@ export const DELETE: RequestHandler = ({ params, url }) => {
     return json({ success: false, error: 'Missing attachmentId' }, { status: 400 })
   }
   try {
+    const attachments = attachmentDAO.getByAssessmentId(params.id)
+    const target = attachments.find((a) => a.id === attachmentId)
+    if (target) {
+      try { unlinkSync(target.filePath) } catch { /* file may already be gone */ }
+    }
     attachmentDAO.delete(attachmentId)
     return json({ success: true })
   } catch (e) {

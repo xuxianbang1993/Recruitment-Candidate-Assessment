@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { JOB_TEMPLATES } from '../../../../config/job-templates.ts'
 import type { Candidate } from '../../../../types/candidate.ts'
 import type { Assessment, Job } from '../../../../types/assessment.ts'
-import { buildEvaluationPrompt, buildReportPrompt } from '../prompts.ts'
+import { buildEvaluationPrompt, buildReEvaluationPrompt, buildReportPrompt } from '../prompts.ts'
 
 const candidate: Candidate = {
   id: 'candidate-1',
@@ -94,6 +94,27 @@ function run(): void {
   assert.ok(
     reportPrompt.includes(`关键指标：${firstIndicator}`),
     'report prompt includes key indicator context',
+  )
+
+  const reEvaluationPrompt = buildReEvaluationPrompt(candidate, job, assessment, [
+    '面试追问中展示了跨部门推进项目的具体案例。',
+    '候选人对销售复盘方法回答较弱，缺少量化结果。',
+  ])
+  assert.ok(
+    reEvaluationPrompt.includes('## 初评结果（仅供参考，需根据补充材料调整）'),
+    're-evaluation prompt includes initial assessment summary',
+  )
+  assert.ok(
+    reEvaluationPrompt.includes('### 补充材料 1'),
+    're-evaluation prompt enumerates attachment content',
+  )
+  assert.ok(
+    reEvaluationPrompt.includes('面试表现证据的权重应高于简历自述'),
+    're-evaluation prompt includes interview-first scoring rule',
+  )
+  assert.ok(
+    reEvaluationPrompt.includes('如面试中发现简历内容不实或表现与简历不符，必须大幅调整分数'),
+    're-evaluation prompt includes score adjustment rule',
   )
 }
 
