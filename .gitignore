@@ -27,6 +27,5 @@ vite.config.ts.timestamp-*
 *.db-wal
 *.db-shm
 
-# Local docs and demo (not for remote)
-docs/
+# Local demo (not for remote)
 recruitment-assessment.html
