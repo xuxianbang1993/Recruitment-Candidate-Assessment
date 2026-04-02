@@ -11,9 +11,9 @@
   }
 
   function scoreColor(score: number): string {
-    if (score >= 80) return '#3B9B6D'
-    if (score >= 60) return '#D4763C'
-    return '#C75450'
+    if (score >= 80) return 'var(--color-success)'
+    if (score >= 60) return 'var(--color-accent)'
+    return 'var(--color-danger)'
   }
 
   // Collect all dimension names from all assessments
@@ -31,7 +31,7 @@
 </script>
 
 {#if assessments.length === 0}
-  <div class="text-center py-8" style="color: #6B7280;">
+  <div class="text-center py-8" style="color: var(--color-text-secondary);">
     <p class="text-sm">暂无评估数据可对比</p>
   </div>
 {:else}
@@ -42,14 +42,14 @@
         <tr>
           <th
             class="text-left p-3 font-medium text-xs sticky left-0"
-            style="background: #F7F5F2; color: #6B7280; border-bottom: 1px solid #E8E5E0; min-width: 80px;"
+            style="background: var(--color-bg-primary); color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border); min-width: 80px;"
           >
             评估维度
           </th>
           {#each assessments as a}
             <th
               class="text-center p-3 font-medium text-xs"
-              style="background: #F7F5F2; color: #1A1D23; border-bottom: 1px solid #E8E5E0; min-width: 120px;"
+              style="background: var(--color-bg-primary); color: var(--color-text-primary); border-bottom: 1px solid var(--color-border); min-width: 120px;"
             >
               <div>{getCandidateName(a.candidateId)}</div>
               <div
@@ -69,7 +69,7 @@
           <tr>
             <td
               class="p-3 text-xs font-medium sticky left-0"
-              style="background: #FAFAF8; color: #6B7280; border-bottom: 1px solid #F0EDE8;"
+              style="background: var(--color-bg-primary); color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border);"
             >
               {dim}
             </td>
@@ -78,7 +78,7 @@
               {@const max = maxScore(dim)}
               <td
                 class="p-3 text-center"
-                style="background: #FFFFFF; border-bottom: 1px solid #F0EDE8;"
+                style="background: var(--color-bg-card); border-bottom: 1px solid var(--color-border);"
               >
                 <div
                   class="text-sm font-bold mb-1"
@@ -86,7 +86,7 @@
                 >
                   {score}
                 </div>
-                <div class="h-1 rounded-full overflow-hidden mx-3" style="background: #F7F5F2;">
+                <div class="h-1 rounded-full overflow-hidden mx-3" style="background: var(--color-bg-primary);">
                   <div
                     class="h-full rounded-full transition-all duration-500"
                     style="width: {max > 0 ? (score / max) * 100 : 0}%; background: {scoreColor(score)};"

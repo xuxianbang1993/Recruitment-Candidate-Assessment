@@ -7,7 +7,8 @@
       "Edit",
       "WebSearch",
       "WebFetch",
-      "mcp__plugin_claude-mem_mcp-search__smart_outline"
+      "mcp__plugin_claude-mem_mcp-search__smart_outline",
+      "mcp__fetch__fetch"
     ],
     "deny": [
       "Bash(rm -rf /)",

@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { candidateDAO } from '$lib/server/db'
+import { candidateDAO, getDatabase } from '$lib/server/db'
+import { unlinkSync } from 'fs'
 
 export const GET: RequestHandler = ({ url }) => {
   try {
@@ -63,7 +64,25 @@ export const POST: RequestHandler = async ({ request }) => {
 
 export const DELETE: RequestHandler = () => {
   try {
+    const db = getDatabase()
+
+    // 1. 查询所有附件文件路径（在 CASCADE 删除前）
+    const filePaths = db
+      .prepare(
+        `SELECT a.file_path FROM attachments a
+         JOIN assessments ass ON a.assessment_id = ass.id
+         JOIN candidates c ON ass.candidate_id = c.id`
+      )
+      .all() as { file_path: string }[]
+
+    // 2. 删除候选人（CASCADE 自动清理 assessments + attachments 记录）
     const count = candidateDAO.deleteAll()
+
+    // 3. 清理磁盘上的附件文件
+    for (const { file_path } of filePaths) {
+      try { unlinkSync(file_path) } catch { /* 文件可能已不存在 */ }
+    }
+
     return json({ success: true, data: { deleted: count } })
   } catch (e) {
     console.error('DELETE /api/candidates error:', e)

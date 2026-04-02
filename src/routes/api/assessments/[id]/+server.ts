@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { assessmentDAO, candidateDAO, jobDAO } from '$lib/server/db'
+import { assessmentDAO, attachmentDAO, candidateDAO, jobDAO } from '$lib/server/db'
+import { unlinkSync } from 'fs'
 
 export const GET: RequestHandler = ({ params }) => {
   try {
@@ -86,6 +87,11 @@ export const DELETE: RequestHandler = ({ params }) => {
     const existing = assessmentDAO.getById(params.id)
     if (!existing) {
       return json({ success: false, error: 'Assessment not found' }, { status: 404 })
+    }
+    // Clean up physical attachment files before deleting DB records
+    const attachments = attachmentDAO.getByAssessmentId(params.id)
+    for (const att of attachments) {
+      try { unlinkSync(att.filePath) } catch { /* file may already be gone */ }
     }
     assessmentDAO.delete(params.id)
     return new Response(null, { status: 204 })

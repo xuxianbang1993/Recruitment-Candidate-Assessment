@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Attachment } from '$lib/server/db/attachment-dao'
+  import type { Attachment } from '$lib/types'
 
   let { attachments, ondelete }: {
     attachments: Attachment[]
@@ -16,12 +16,12 @@
 
   function getTypeIcon(fileType: string): { color: string; label: string } {
     switch (fileType) {
-      case 'pdf': return { color: '#C75450', label: 'PDF' }
-      case 'docx': return { color: '#4A7FC7', label: 'DOC' }
-      case 'txt': return { color: '#6B7280', label: 'TXT' }
+      case 'pdf': return { color: 'var(--color-danger)', label: 'PDF' }
+      case 'docx': return { color: 'var(--color-info)', label: 'DOC' }
+      case 'txt': return { color: 'var(--color-text-secondary)', label: 'TXT' }
       case 'audio': return { color: '#8B5CF6', label: 'MP3' }
-      case 'image': return { color: '#3B9B6D', label: 'IMG' }
-      default: return { color: '#6B7280', label: 'FILE' }
+      case 'image': return { color: 'var(--color-success)', label: 'IMG' }
+      default: return { color: 'var(--color-text-secondary)', label: 'FILE' }
     }
   }
 
@@ -36,7 +36,7 @@
 </script>
 
 {#if attachments.length === 0}
-  <p class="text-sm py-4 text-center" style="color: #6B7280;">暂无附件</p>
+  <p class="text-sm py-4 text-center" style="color: var(--color-text-secondary);">暂无附件</p>
 {:else}
   <div class="space-y-2">
     {#each attachments as attachment (attachment.id)}
@@ -44,9 +44,9 @@
       <div
         role="listitem"
         class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150"
-        style="background: #FFFFFF; border: 1px solid #F0EDE8;"
-        onmouseenter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#E8E5E0' }}
-        onmouseleave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = '#F0EDE8'; if (confirmingId === attachment.id) confirmingId = null }}
+        style="background: var(--color-bg-card); border: 1px solid var(--color-border);"
+        onmouseenter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)' }}
+        onmouseleave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-border)'; if (confirmingId === attachment.id) confirmingId = null }}
       >
         <div
           class="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
@@ -56,15 +56,15 @@
         </div>
 
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium truncate" style="color: #1A1D23;">{attachment.originalName}</p>
-          <p class="text-xs" style="color: #9CA3AF;">{formatSize(attachment.fileSize)}</p>
+          <p class="text-sm font-medium truncate" style="color: var(--color-text-primary);">{attachment.originalName}</p>
+          <p class="text-xs" style="color: var(--color-text-secondary);">{formatSize(attachment.fileSize)}</p>
         </div>
 
         <button
           class="text-xs px-3 py-1.5 rounded-lg transition-all duration-150 shrink-0"
           style="
             background: {confirmingId === attachment.id ? 'rgba(199,84,80,0.1)' : 'transparent'};
-            color: {confirmingId === attachment.id ? 'var(--color-danger, #C75450)' : '#9CA3AF'};
+            color: {confirmingId === attachment.id ? 'var(--color-danger)' : 'var(--color-text-secondary)'};
             border: 1px solid {confirmingId === attachment.id ? 'rgba(199,84,80,0.3)' : 'transparent'};
           "
           onclick={() => handleDelete(attachment.id)}

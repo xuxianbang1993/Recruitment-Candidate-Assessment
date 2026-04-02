@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { candidateDAO } from '$lib/server/db'
+import { candidateDAO, getDatabase } from '$lib/server/db'
+import { unlinkSync } from 'fs'
 
 export const GET: RequestHandler = ({ params }) => {
   try {
@@ -62,7 +63,25 @@ export const DELETE: RequestHandler = ({ params }) => {
     if (!existing) {
       return json({ success: false, error: 'Candidate not found' }, { status: 404 })
     }
+
+    // 查询该候选人关联的附件文件路径（在 CASCADE 删除前）
+    const db = getDatabase()
+    const filePaths = db
+      .prepare(
+        `SELECT a.file_path FROM attachments a
+         JOIN assessments ass ON a.assessment_id = ass.id
+         WHERE ass.candidate_id = ?`
+      )
+      .all(params.id) as { file_path: string }[]
+
+    // 删除候选人（CASCADE 自动清理 assessments + attachments 记录）
     candidateDAO.delete(params.id)
+
+    // 清理磁盘上的附件文件
+    for (const { file_path } of filePaths) {
+      try { unlinkSync(file_path) } catch { /* 文件可能已不存在 */ }
+    }
+
     return new Response(null, { status: 204 })
   } catch (e) {
     console.error('DELETE /api/candidates/[id] error:', e)

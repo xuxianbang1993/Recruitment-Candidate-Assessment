@@ -46,11 +46,15 @@ function runMigrations(database: Database.Database): void {
       .map((row: unknown) => (row as { filename: string }).filename)
   );
 
-  for (const file of files) {
-    if (applied.has(file)) continue;
+  const runSingle = database.transaction((file: string) => {
     const sql = readFileSync(join(migrationsDir, file), 'utf-8');
     database.exec(sql);
     database.prepare('INSERT INTO _migrations (filename) VALUES (?)').run(file);
+  });
+
+  for (const file of files) {
+    if (applied.has(file)) continue;
+    runSingle(file);
   }
 }
 

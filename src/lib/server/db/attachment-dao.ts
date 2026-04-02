@@ -1,17 +1,8 @@
 import { getDatabase } from './database.js'
 import { randomUUID } from 'crypto'
+import type { Attachment } from '$lib/types'
 
-export interface Attachment {
-  id: string
-  assessmentId: string
-  filename: string
-  originalName: string
-  filePath: string
-  fileType: string
-  fileSize: number
-  textContent: string | null
-  createdAt: string
-}
+export type { Attachment }
 
 interface AttachmentRow {
   id: string

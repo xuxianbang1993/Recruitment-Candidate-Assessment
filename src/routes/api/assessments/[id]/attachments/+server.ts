@@ -51,6 +51,12 @@ export const POST: RequestHandler = async ({ params, request }) => {
   try {
     const buffer = Buffer.from(await file.arrayBuffer())
     const ext = file.name.split('.').pop()?.toLowerCase() ?? ''
+
+    const ALLOWED_EXTS = ['pdf', 'docx', 'doc', 'txt', 'mp3', 'wav', 'm4a', 'jpg', 'jpeg', 'png']
+    if (!ALLOWED_EXTS.includes(ext)) {
+      return json({ success: false, error: `不支持的文件类型: .${ext}` }, { status: 400 })
+    }
+
     const storedName = randomUUID() + '.' + ext
 
     ensureDir(ATTACHMENTS_DIR)

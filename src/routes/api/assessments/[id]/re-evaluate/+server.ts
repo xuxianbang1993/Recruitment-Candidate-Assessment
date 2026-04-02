@@ -29,7 +29,7 @@ export const POST: RequestHandler = async ({ params }) => {
       .filter((text): text is string => text !== null && text.length > 0)
 
     if (attachmentTexts.length === 0) {
-      return json({ success: false, error: '无可分析的附件文本内容' }, { status: 400 })
+      return json({ success: false, error: '当前附件均为音频/图片格式，无法提取文本进行分析。请上传 PDF、Word 或 TXT 格式的文档类附件。' }, { status: 400 })
     }
 
     const config = getAIConfig()
