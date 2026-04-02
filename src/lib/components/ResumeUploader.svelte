@@ -1,11 +1,15 @@
 <script lang="ts">
   import type { Candidate } from '$lib/types'
 
-  let { onupload }: { onupload: (candidate: Candidate) => void } = $props()
+  let { onupload, multiple = false }: {
+    onupload: (candidate: Candidate) => void
+    multiple?: boolean
+  } = $props()
 
   let isDragOver = $state(false)
   let isUploading = $state(false)
   let uploadError = $state('')
+  let uploadProgress = $state('')
   let fileInput: HTMLInputElement
 
   function handleDragEnter(e: DragEvent) {
@@ -28,7 +32,7 @@
     isDragOver = false
     const files = e.dataTransfer?.files
     if (files && files.length > 0) {
-      await uploadFile(files[0])
+      await uploadFiles(Array.from(files))
     }
   }
 
@@ -39,9 +43,19 @@
   async function handleFileChange(e: Event) {
     const target = e.target as HTMLInputElement
     if (target.files && target.files.length > 0) {
-      await uploadFile(target.files[0])
+      await uploadFiles(Array.from(target.files))
       target.value = ''
     }
+  }
+
+  async function uploadFiles(files: File[]) {
+    const toUpload = multiple ? files : [files[0]]
+    const total = toUpload.length
+    for (let i = 0; i < total; i++) {
+      if (total > 1) uploadProgress = `正在上传 ${i + 1}/${total}...`
+      await uploadFile(toUpload[i])
+    }
+    uploadProgress = ''
   }
 
   async function uploadFile(file: File) {
@@ -104,6 +118,7 @@
     type="file"
     accept=".pdf,.doc,.docx,.txt"
     class="hidden"
+    {multiple}
     onchange={handleFileChange}
   />
 
@@ -129,7 +144,7 @@
   <!-- Text -->
   <div class="text-center">
     {#if isUploading}
-      <p class="text-sm font-medium" style="color: #D4763C;">正在解析简历...</p>
+      <p class="text-sm font-medium" style="color: #D4763C;">{uploadProgress || '正在解析简历...'}</p>
     {:else}
       <p class="text-sm font-semibold mb-1" style="color: #1A1D23;">
         拖拽简历到此处，或
