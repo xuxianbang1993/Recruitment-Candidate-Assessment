@@ -91,10 +91,12 @@
   async function handleClearAll() {
     if (!(await showConfirm(`确定要清空该岗位下全部 ${candidates.length} 位候选人吗？\n\n此操作不可撤销。`))) return
     try {
-      for (const c of candidates) {
-        await fetch(`/api/candidates/${c.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/candidates?jobId=${encodeURIComponent(selectedJobId)}`, { method: 'DELETE' })
+      if (res.ok) {
+        candidates = []
+      } else {
+        error = '清空失败，请重试'
       }
-      candidates = []
     } catch {
       error = '清空失败，请重试'
     }

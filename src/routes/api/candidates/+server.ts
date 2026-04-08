@@ -1,7 +1,7 @@
-import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { candidateDAO, getDatabase } from '$lib/server/db'
+import { json } from '@sveltejs/kit'
 import { unlinkSync } from 'fs'
+import { candidateDAO, getDatabase } from '$lib/server/db'
 
 export const GET: RequestHandler = ({ url }) => {
   try {
@@ -70,21 +70,29 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 }
 
-export const DELETE: RequestHandler = () => {
+export const DELETE: RequestHandler = ({ url }) => {
   try {
+    const jobId = url.searchParams.get('jobId')
     const db = getDatabase()
 
-    // 1. 查询所有附件文件路径（在 CASCADE 删除前）
-    const filePaths = db
-      .prepare(
-        `SELECT a.file_path FROM attachments a
+    // 1. 查询附件文件路径（在 CASCADE 删除前），按 jobId 过滤
+    const attachmentQuery = jobId
+      ? `SELECT a.file_path FROM attachments a
+         JOIN assessments ass ON a.assessment_id = ass.id
+         JOIN candidates c ON ass.candidate_id = c.id
+         WHERE c.job_id = ?`
+      : `SELECT a.file_path FROM attachments a
          JOIN assessments ass ON a.assessment_id = ass.id
          JOIN candidates c ON ass.candidate_id = c.id`
-      )
-      .all() as { file_path: string }[]
+    const filePaths = (jobId
+      ? db.prepare(attachmentQuery).all(jobId)
+      : db.prepare(attachmentQuery).all()
+    ) as { file_path: string }[]
 
     // 2. 删除候选人（CASCADE 自动清理 assessments + attachments 记录）
-    const count = candidateDAO.deleteAll()
+    const count = jobId
+      ? candidateDAO.deleteByJobId(jobId)
+      : candidateDAO.deleteAll()
 
     // 3. 清理磁盘上的附件文件
     for (const { file_path } of filePaths) {

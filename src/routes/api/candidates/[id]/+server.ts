@@ -1,7 +1,7 @@
-import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { candidateDAO, getDatabase } from '$lib/server/db'
+import { json } from '@sveltejs/kit'
 import { unlinkSync } from 'fs'
+import { candidateDAO, getDatabase } from '$lib/server/db'
 
 export const GET: RequestHandler = ({ params }) => {
   try {

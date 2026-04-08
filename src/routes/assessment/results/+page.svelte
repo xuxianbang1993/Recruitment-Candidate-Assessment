@@ -162,7 +162,7 @@
     {#if jobs.length > 0}
       <select
         bind:value={selectedJobId}
-        onchange={() => fetchCandidatesForJob()}
+        onchange={() => { selectedChartIdx = 0; fetchCandidatesForJob() }}
         class="px-3 py-2 rounded-xl text-sm outline-none cursor-pointer"
         style="background: var(--color-bg-card); border: 1px solid var(--color-border); color: var(--color-text-primary);"
       >

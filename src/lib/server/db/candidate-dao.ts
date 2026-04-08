@@ -1,6 +1,6 @@
-import { getDatabase } from './database.js';
 import type { Candidate } from '$lib/types/candidate';
 import { randomUUID } from 'crypto';
+import { getDatabase } from './database.js';
 
 interface CandidateRow {
   id: string;
@@ -122,6 +122,12 @@ export class CandidateDAO {
   delete(id: string): void {
     const db = getDatabase();
     db.prepare('DELETE FROM candidates WHERE id = ?').run(id);
+  }
+
+  deleteByJobId(jobId: string): number {
+    const db = getDatabase();
+    const result = db.prepare('DELETE FROM candidates WHERE job_id = ?').run(jobId);
+    return result.changes;
   }
 
   deleteAll(): number {

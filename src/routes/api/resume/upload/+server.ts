@@ -1,8 +1,8 @@
-import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { parseResume } from '$lib/server/services/resume'
-import { candidateDAO } from '$lib/server/db'
+import { json } from '@sveltejs/kit'
 import path from 'path'
+import { candidateDAO } from '$lib/server/db'
+import { parseResume } from '$lib/server/services/resume'
 
 const MAX_FILE_SIZE = 11 * 1024 * 1024 // 11MB
 

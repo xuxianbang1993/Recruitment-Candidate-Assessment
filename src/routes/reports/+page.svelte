@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import DOMPurify from 'dompurify'
   import VisualReport from '$lib/components/VisualReport.svelte'
   import AttachmentUploader from '$lib/components/AttachmentUploader.svelte'
   import AttachmentList from '$lib/components/AttachmentList.svelte'
@@ -24,9 +23,15 @@
   let reEvaluating = $state(false)
   let comprehensiveAssessment = $state<Assessment | null>(null)
 
-  const sanitizedReportText = $derived(DOMPurify.sanitize(reportText))
+  // Dynamic import for SSR safety — DOMPurify requires browser DOM APIs
+  let purify = $state<{ sanitize: (html: string) => string } | undefined>(undefined)
+  const sanitizedReportText = $derived(purify ? purify.sanitize(reportText) : '')
 
   onMount(async () => {
+    // Load DOMPurify dynamically to avoid SSR crash
+    const mod = await import('dompurify')
+    purify = mod.default
+
     loadingJobs = true
     try {
       const res = await fetch('/api/jobs')
@@ -44,6 +49,9 @@
     }
   })
 
+  // Request sequence counter to discard stale responses on rapid job switching
+  let jobChangeSeq = 0
+
   async function onJobChange() {
     candidates = []
     selectedCandidateId = ''
@@ -54,9 +62,11 @@
     error = ''
     if (!selectedJobId) return
 
+    const seq = ++jobChangeSeq
     loadingCandidates = true
     try {
       const res = await fetch(`/api/candidates?jobId=${selectedJobId}`)
+      if (seq !== jobChangeSeq) return // stale response, discard
       if (res.ok) {
         const json = await res.json()
         candidates = json.success ? (json.data ?? []) : []
@@ -64,14 +74,15 @@
     } catch {
       // ignore
     } finally {
-      loadingCandidates = false
+      if (seq === jobChangeSeq) loadingCandidates = false
     }
   }
 
+  // React to all selectedJobId changes (including reset to empty)
   $effect(() => {
-    if (selectedJobId) {
-      onJobChange()
-    }
+    // Read selectedJobId to establish dependency
+    const _jobId = selectedJobId
+    onJobChange()
   })
 
   async function onCandidateChange() {
@@ -197,7 +208,7 @@
 <div class="space-y-6">
   <!-- Header -->
   <div>
-    <h1 class="font-semibold" style="font-size: 16px; color: var(--color-text-primary);">匹配报告</h1>
+    <h1 class="text-base font-semibold" style="color: var(--color-text-primary);">匹配报告</h1>
     <p class="text-xs mt-1" style="color: var(--color-text-secondary);">选择岗位和候选人，由 AI 生成详细评估报告</p>
   </div>
 
@@ -311,10 +322,10 @@
   <!-- Report Content -->
   {#if reportText}
     <div class="space-y-4">
-      {#if selectedJobData}
+      {#if selectedJobData && selectedAssessment && selectedCandidate}
         <VisualReport
-          assessment={assessments.find((a) => a.id === selectedAssessmentId)!}
-          candidate={selectedCandidate!}
+          assessment={selectedAssessment}
+          candidate={selectedCandidate}
           job={selectedJobData}
           {reportText}
         />

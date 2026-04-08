@@ -1,9 +1,9 @@
-import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
+import type { Message } from '$lib/types'
+import { json } from '@sveltejs/kit'
 import { chatHistoryDAO } from '$lib/server/db'
 import { createAI, AIServiceError } from '$lib/server/services/ai'
 import { buildChatContext } from '$lib/server/services/ai/chat-context'
-import type { Message } from '$lib/types'
 import { getAIConfig, AIConfigError } from '../utils'
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -26,10 +26,14 @@ export const POST: RequestHandler = async ({ request }) => {
   const data = body as Record<string, unknown>
   let sessionId = typeof data.sessionId === 'string' ? data.sessionId : 'default'
   if (sessionId) sessionId = sessionId.slice(0, 128)
-  const allMessages = (data.messages as Array<{ role: unknown; content: unknown }>).map((m) => ({
-    role: m.role as Message['role'],
-    content: String(m.content)
-  }))
+  // Filter to only allowed roles — prevent client-injected 'system' messages
+  const allowedRoles = new Set<Message['role']>(['user', 'assistant'])
+  const allMessages = (data.messages as Array<{ role: unknown; content: unknown }>)
+    .filter((m) => allowedRoles.has(m.role as Message['role']))
+    .map((m) => ({
+      role: m.role as Message['role'],
+      content: String(m.content)
+    }))
   // Truncate to most recent 50 messages to avoid token overflow
   const messages = allMessages.slice(-50)
 
