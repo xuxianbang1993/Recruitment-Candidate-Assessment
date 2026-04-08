@@ -7,10 +7,10 @@ import { buildEvaluationPrompt, buildReEvaluationPrompt, buildReportPrompt } fro
 
 const candidate: Candidate = {
   id: 'candidate-1',
+  jobId: 'job-1',
   name: 'Test Candidate',
   phone: '',
   email: 'candidate@example.com',
-  position: 'Role',
   resumeText: 'Experienced in product delivery and leadership.',
   skills: ['Planning', 'Execution'],
   experience: 5,

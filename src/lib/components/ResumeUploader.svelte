@@ -1,9 +1,10 @@
 <script lang="ts">
   import type { Candidate } from '$lib/types'
 
-  let { onupload, multiple = false }: {
+  let { onupload, multiple = false, jobId }: {
     onupload: (candidate: Candidate) => void
     multiple?: boolean
+    jobId: string
   } = $props()
 
   let isDragOver = $state(false)
@@ -65,6 +66,7 @@
       const formData = new FormData()
       formData.append('file', file)
       formData.append('createCandidate', 'true')
+      formData.append('jobId', jobId)
       const res = await fetch('/api/resume/upload', {
         method: 'POST',
         body: formData,

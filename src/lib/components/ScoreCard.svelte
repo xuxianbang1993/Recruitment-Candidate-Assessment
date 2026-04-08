@@ -50,12 +50,12 @@
         <span class="font-semibold text-sm truncate" style="color: #1A1D23;">
           {candidate?.name ?? '候选人'}
         </span>
-        {#if candidate?.position}
+        {#if candidate?.education}
           <span
             class="text-[11px] px-2 py-0.5 rounded-full flex-shrink-0"
             style="background: rgba(212,118,60,0.08); color: #D4763C;"
           >
-            {candidate.position}
+            {candidate.education}
           </span>
         {/if}
       </div>

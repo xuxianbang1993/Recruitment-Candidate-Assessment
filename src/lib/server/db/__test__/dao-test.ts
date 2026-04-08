@@ -30,14 +30,29 @@ function section(name: string): void {
   console.log(`\n[${name}]`)
 }
 
+// Create a job first for FK references
+const jobDAO = new JobDAO()
+const testJob = jobDAO.create({
+  title: 'Frontend Engineer',
+  department: 'Engineering',
+  category: 'expert',
+  description: 'Build and maintain the UI',
+  requirements: ['3+ years experience', 'Svelte'],
+  skills: ['Svelte', 'TypeScript'],
+  weights: [
+    { name: 'Technical Skill', weight: 60, score: 0 },
+    { name: 'Communication', weight: 40, score: 0 },
+  ],
+})
+
 section('CandidateDAO')
 const candidateDAO = new CandidateDAO()
 
 const newCandidate = candidateDAO.create({
+  jobId: testJob.id,
   name: 'Alice',
   phone: '13800138000',
   email: 'alice@example.com',
-  position: 'Frontend Engineer',
   resumeText: 'Experienced with Svelte and TypeScript',
   skills: ['Svelte', 'TypeScript', 'CSS'],
   experience: 3,
@@ -72,20 +87,8 @@ const deleted = candidateDAO.getById(newCandidate.id)
 assert(deleted === undefined, 'delete: candidate removed')
 
 section('JobDAO')
-const jobDAO = new JobDAO()
-
-const newJob = jobDAO.create({
-  title: 'Frontend Engineer',
-  department: 'Engineering',
-  category: 'expert',
-  description: 'Build and maintain the UI',
-  requirements: ['3+ years experience', 'Svelte'],
-  skills: ['Svelte', 'TypeScript'],
-  weights: [
-    { name: 'Technical Skill', weight: 60, score: 0 },
-    { name: 'Communication', weight: 40, score: 0 },
-  ],
-})
+// jobDAO already created above
+const newJob = testJob
 assert(newJob.id.length > 0, 'create: returns job with id')
 assert(newJob.title === 'Frontend Engineer', 'create: title matches')
 assert(newJob.category === 'expert', 'create: category matches')
@@ -111,10 +114,10 @@ section('AssessmentDAO')
 const assessmentDAO = new AssessmentDAO()
 
 const c2 = candidateDAO.create({
+  jobId: testJob.id,
   name: 'Bob',
   phone: '',
   email: 'bob@example.com',
-  position: 'Backend Engineer',
   resumeText: '',
   skills: [],
   experience: 2,

@@ -6,13 +6,16 @@
   import AttachmentList from '$lib/components/AttachmentList.svelte'
   import type { Candidate, Assessment, Job, Attachment } from '$lib/types'
 
+  let jobs = $state<Job[]>([])
+  let selectedJobId = $state<string>('')
+  let loadingJobs = $state(false)
   let candidates = $state<Candidate[]>([])
   let selectedCandidateId = $state<string>('')
   let assessments = $state<Assessment[]>([])
   let selectedAssessmentId = $state<string>('')
   let reportText = $state<string>('')
   let reportScore = $state<number | null>(null)
-  let selectedJob = $state<Job | null>(null)
+  let selectedJobData = $state<Job | null>(null)
   let loadingCandidates = $state(false)
   let loadingAssessments = $state(false)
   let generating = $state(false)
@@ -24,9 +27,36 @@
   const sanitizedReportText = $derived(DOMPurify.sanitize(reportText))
 
   onMount(async () => {
+    loadingJobs = true
+    try {
+      const res = await fetch('/api/jobs')
+      if (res.ok) {
+        const json = await res.json()
+        jobs = json.success ? (json.data ?? []) : []
+        if (jobs.length > 0) {
+          selectedJobId = jobs[0].id
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      loadingJobs = false
+    }
+  })
+
+  async function onJobChange() {
+    candidates = []
+    selectedCandidateId = ''
+    assessments = []
+    selectedAssessmentId = ''
+    reportText = ''
+    reportScore = null
+    error = ''
+    if (!selectedJobId) return
+
     loadingCandidates = true
     try {
-      const res = await fetch('/api/candidates')
+      const res = await fetch(`/api/candidates?jobId=${selectedJobId}`)
       if (res.ok) {
         const json = await res.json()
         candidates = json.success ? (json.data ?? []) : []
@@ -35,6 +65,12 @@
       // ignore
     } finally {
       loadingCandidates = false
+    }
+  }
+
+  $effect(() => {
+    if (selectedJobId) {
+      onJobChange()
     }
   })
 
@@ -128,7 +164,7 @@
             const jobRes = await fetch(`/api/jobs/${found.jobId}`)
             if (jobRes.ok) {
               const jobJson = await jobRes.json()
-              if (jobJson.success) selectedJob = jobJson.data
+              if (jobJson.success) selectedJobData = jobJson.data
             }
           } catch { /* ignore */ }
         }
@@ -162,7 +198,7 @@
   <!-- Header -->
   <div>
     <h1 class="font-semibold" style="font-size: 16px; color: var(--color-text-primary);">匹配报告</h1>
-    <p class="text-xs mt-1" style="color: var(--color-text-secondary);">选择候选人，由 AI 生成详细评估报告</p>
+    <p class="text-xs mt-1" style="color: var(--color-text-secondary);">选择岗位和候选人，由 AI 生成详细评估报告</p>
   </div>
 
   <!-- Selector Card -->
@@ -170,7 +206,27 @@
     class="rounded-xl p-5 space-y-4"
     style="background: var(--color-bg-card); border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);"
   >
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <!-- Job -->
+      <div>
+        <label for="jobSel" class="block text-xs font-medium mb-1.5" style="color: var(--color-text-secondary);">选择岗位</label>
+        {#if loadingJobs}
+          <div class="h-10 rounded-lg animate-pulse" style="background: var(--color-bg-primary);"></div>
+        {:else}
+          <select
+            id="jobSel"
+            bind:value={selectedJobId}
+            class="w-full h-10 px-3 rounded-lg text-sm outline-none"
+            style="background: var(--color-bg-primary); border: 1px solid var(--color-border); color: var(--color-text-primary);"
+          >
+            <option value="">请选择岗位...</option>
+            {#each jobs as j}
+              <option value={j.id}>{j.title} — {j.department}</option>
+            {/each}
+          </select>
+        {/if}
+      </div>
+
       <!-- Candidate -->
       <div>
         <label for="candidateSel" class="block text-xs font-medium mb-1.5" style="color: var(--color-text-secondary);">选择候选人</label>
@@ -181,13 +237,18 @@
             id="candidateSel"
             bind:value={selectedCandidateId}
             onchange={onCandidateChange}
+            disabled={!selectedJobId || candidates.length === 0}
             class="w-full h-10 px-3 rounded-lg text-sm outline-none"
-            style="background: var(--color-bg-primary); border: 1px solid var(--color-border); color: var(--color-text-primary);"
+            style="background: var(--color-bg-primary); border: 1px solid var(--color-border); color: var(--color-text-primary); opacity: {!selectedJobId ? '0.5' : '1'};"
           >
-            <option value="">请选择候选人...</option>
-            {#each candidates as c}
-              <option value={c.id}>{c.name}{c.position ? ` — ${c.position}` : ''}</option>
-            {/each}
+            {#if candidates.length === 0}
+              <option value="">— 暂无候选人 —</option>
+            {:else}
+              <option value="">请选择候选人...</option>
+              {#each candidates as c}
+                <option value={c.id}>{c.name}</option>
+              {/each}
+            {/if}
           </select>
         {/if}
       </div>
@@ -210,7 +271,7 @@
             {:else}
               <option value="">请选择...</option>
               {#each assessments as a}
-                <option value={a.id}>评估 #{a.id}（得分 {a.totalScore}）</option>
+                <option value={a.id}>评估（得分 {a.totalScore}）</option>
               {/each}
             {/if}
           </select>
@@ -250,11 +311,11 @@
   <!-- Report Content -->
   {#if reportText}
     <div class="space-y-4">
-      {#if selectedJob}
+      {#if selectedJobData}
         <VisualReport
           assessment={assessments.find((a) => a.id === selectedAssessmentId)!}
           candidate={selectedCandidate!}
-          job={selectedJob}
+          job={selectedJobData}
           {reportText}
         />
       {:else}
@@ -264,19 +325,19 @@
         </div>
       {/if}
     </div>
-  {:else if !generating && candidates.length === 0 && !loadingCandidates}
+  {:else if !generating && !loadingJobs && jobs.length === 0}
     <div
       class="rounded-xl p-10 text-center"
       style="background: var(--color-bg-card); border: 1px solid var(--color-border);"
     >
       <span class="block mb-3" style="color: var(--color-border);"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
-      <div class="text-sm" style="color: var(--color-text-secondary);">暂无候选人，请先上传简历并完成评估</div>
+      <div class="text-sm" style="color: var(--color-text-secondary);">暂无岗位，请先创建岗位需求</div>
       <a
-        href="/candidates"
+        href="/assessment"
         class="inline-block mt-3 px-4 py-2 rounded-lg text-sm font-medium"
         style="background: var(--color-accent); color: var(--color-bg-card);"
       >
-        去上传简历
+        去创建岗位
       </a>
     </div>
   {:else if selectedCandidateId && assessments.length === 0 && !loadingAssessments}

@@ -6,7 +6,17 @@ import { unlinkSync } from 'fs'
 export const GET: RequestHandler = ({ url }) => {
   try {
     const keyword = url.searchParams.get('keyword')
-    const candidates = keyword ? candidateDAO.search(keyword) : candidateDAO.getAll()
+    const jobId = url.searchParams.get('jobId')
+
+    let candidates
+    if (keyword) {
+      candidates = candidateDAO.search(keyword, jobId ?? undefined)
+    } else if (jobId) {
+      candidates = candidateDAO.getByJobId(jobId)
+    } else {
+      candidates = candidateDAO.getAll()
+    }
+
     return json({ success: true, data: candidates })
   } catch (e) {
     console.error('GET /api/candidates error:', e)
@@ -26,30 +36,28 @@ export const POST: RequestHandler = async ({ request }) => {
     typeof body !== 'object' ||
     body === null ||
     !('name' in body) ||
-    !('phone' in body) ||
-    !('email' in body) ||
-    !('position' in body) ||
+    !('jobId' in body) ||
     !('resumeText' in body)
   ) {
     return json(
-      { success: false, error: 'Missing required fields: name, phone, email, position, resumeText' },
+      { success: false, error: 'Missing required fields: name, jobId, resumeText' },
       { status: 400 }
     )
   }
 
   const data = body as Record<string, unknown>
 
-  const email = String(data.email)
+  const email = String(data.email ?? '')
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return json({ success: false, error: '邮箱格式不正确' }, { status: 400 })
   }
 
   try {
     const candidate = candidateDAO.create({
+      jobId: String(data.jobId),
       name: String(data.name),
-      phone: String(data.phone),
-      email: String(data.email),
-      position: String(data.position),
+      phone: String(data.phone ?? ''),
+      email,
       resumeText: String(data.resumeText),
       skills: Array.isArray(data.skills) ? (data.skills as string[]).map(String) : [],
       experience: typeof data.experience === 'number' ? data.experience : 0,

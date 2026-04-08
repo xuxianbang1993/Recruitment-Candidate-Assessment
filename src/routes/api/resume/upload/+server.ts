@@ -40,6 +40,7 @@ export const POST: RequestHandler = async ({ request }) => {
   const candidateId = formData.get('candidateId')
   const createCandidateRaw = formData.get('createCandidate')
   const createCandidate = createCandidateRaw === 'true' || createCandidateRaw === '1'
+  const jobId = formData.get('jobId')
 
   let parsed
   try {
@@ -72,12 +73,15 @@ export const POST: RequestHandler = async ({ request }) => {
       candidateDAO.update(candidateId, { resumeText: parsed.text })
       resolvedCandidateId = candidateId
     } else if (createCandidate) {
+      if (typeof jobId !== 'string' || !jobId) {
+        return json({ success: false, error: 'jobId is required when creating a candidate' }, { status: 400 })
+      }
       const basename = path.basename(file.name, path.extname(file.name))
       const candidate = candidateDAO.create({
+        jobId,
         name: basename || '未命名候选人',
         phone: '',
         email: '',
-        position: '',
         resumeText: parsed.text,
         skills: [],
         experience: 0,
