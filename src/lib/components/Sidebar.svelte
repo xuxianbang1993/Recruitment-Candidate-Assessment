@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state'
+  import { onMount } from 'svelte'
 
   const iconMap: Record<string, string> = {
     dashboard: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
@@ -23,6 +24,84 @@
 
   function isActive(href: string): boolean {
     return page.url.pathname === href
+  }
+
+  // --- Update state ---
+  type UpdateStep = 'idle' | 'checking' | 'has-update' | 'pulling' | 'installing' | 'done' | 'error'
+
+  let version = $state('')
+  let updateStep = $state<UpdateStep>('idle')
+  let updateMessage = $state('')
+  let updateCommits = $state<{ hash: string; message: string; date: string }[]>([])
+  let needsRestart = $state(false)
+
+  onMount(async () => {
+    try {
+      const res = await fetch('/api/system/version')
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success) version = json.data.version
+      }
+    } catch { /* ignore */ }
+  })
+
+  async function checkUpdate() {
+    updateStep = 'checking'
+    updateMessage = ''
+    updateCommits = []
+    try {
+      const res = await fetch('/api/system/update')
+      const json = await res.json()
+      if (!json.success) {
+        updateStep = 'error'
+        updateMessage = json.error
+        return
+      }
+      if (json.data.hasUpdate) {
+        updateStep = 'has-update'
+        updateCommits = json.data.commits
+        updateMessage = `发现 ${json.data.behindCount} 个更新`
+      } else {
+        updateStep = 'done'
+        updateMessage = '已是最新版本'
+        setTimeout(() => { updateStep = 'idle' }, 3000)
+      }
+    } catch {
+      updateStep = 'error'
+      updateMessage = '网络错误，无法检查更新'
+    }
+  }
+
+  async function applyUpdate() {
+    updateStep = 'pulling'
+    updateMessage = '正在拉取代码...'
+    try {
+      const res = await fetch('/api/system/update', { method: 'POST' })
+      const json = await res.json()
+      if (!json.success) {
+        updateStep = 'error'
+        updateMessage = json.error
+        return
+      }
+      needsRestart = json.data.needsRestart
+      updateStep = 'done'
+      updateMessage = json.data.message
+
+      if (!needsRestart) {
+        // Vite HMR will handle it — auto-refresh after a short delay
+        setTimeout(() => { window.location.reload() }, 2000)
+      }
+    } catch {
+      updateStep = 'error'
+      updateMessage = '更新失败，请检查网络'
+    }
+  }
+
+  function dismissUpdate() {
+    updateStep = 'idle'
+    updateMessage = ''
+    updateCommits = []
+    needsRestart = false
   }
 </script>
 
@@ -74,19 +153,92 @@
     {/each}
   </nav>
 
-  <!-- User Info -->
-  <div class="px-4 py-4 border-t border-white/5">
-    <div class="flex items-center gap-3">
-      <div
-        class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-        style="background: linear-gradient(135deg, var(--color-accent), var(--color-info));"
+  <!-- Update Section -->
+  <div class="px-3 pb-2">
+    {#if updateStep === 'has-update'}
+      <!-- Update available panel -->
+      <div class="rounded-lg p-3 space-y-2" style="background: rgba(212,118,60,0.12);">
+        <div class="text-xs font-medium" style="color: var(--color-accent);">{updateMessage}</div>
+        <div class="max-h-24 overflow-y-auto space-y-1">
+          {#each updateCommits.slice(0, 5) as c}
+            <div class="text-white/50 text-xs truncate" title="{c.hash} {c.message}">
+              <span style="color: var(--color-accent);">{c.hash}</span> {c.message}
+            </div>
+          {/each}
+          {#if updateCommits.length > 5}
+            <div class="text-white/30 text-xs">... 还有 {updateCommits.length - 5} 条</div>
+          {/if}
+        </div>
+        <div class="flex gap-2">
+          <button
+            onclick={applyUpdate}
+            class="flex-1 h-7 rounded text-xs font-medium transition-colors"
+            style="background: var(--color-accent); color: white;"
+          >
+            立即更新
+          </button>
+          <button
+            onclick={dismissUpdate}
+            class="h-7 px-2 rounded text-xs transition-colors"
+            style="color: rgba(255,255,255,0.4);"
+          >
+            稍后
+          </button>
+        </div>
+      </div>
+    {:else if updateStep === 'pulling' || updateStep === 'installing'}
+      <!-- Progress -->
+      <div class="rounded-lg p-3" style="background: rgba(74,127,199,0.12);">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full border-2 border-white/20 border-t-white/60 animate-spin"></span>
+          <span class="text-xs" style="color: var(--color-info);">{updateMessage}</span>
+        </div>
+      </div>
+    {:else if updateStep === 'done'}
+      <!-- Done -->
+      <div class="rounded-lg p-3" style="background: rgba(59,155,109,0.12);">
+        <div class="text-xs" style="color: var(--color-success);">{updateMessage}</div>
+        {#if needsRestart}
+          <div class="text-white/40 text-xs mt-1">请手动重启 npm run dev</div>
+        {/if}
+      </div>
+    {:else if updateStep === 'error'}
+      <!-- Error -->
+      <div class="rounded-lg p-3" style="background: rgba(199,84,80,0.12);">
+        <div class="text-xs" style="color: var(--color-danger);">{updateMessage}</div>
+        <button
+          onclick={dismissUpdate}
+          class="text-white/40 text-xs mt-1 underline"
+        >
+          关闭
+        </button>
+      </div>
+    {/if}
+  </div>
+
+  <!-- Version + Check Update -->
+  <div class="px-4 py-3 border-t border-white/5">
+    <div class="flex items-center justify-between">
+      <span class="text-white/30 text-xs">
+        {version ? `v${version}` : ''}
+      </span>
+      <button
+        onclick={checkUpdate}
+        disabled={updateStep === 'checking' || updateStep === 'pulling' || updateStep === 'installing'}
+        class="flex items-center gap-1.5 text-xs transition-colors disabled:opacity-40"
+        style="color: rgba(229,231,235,0.5);"
       >
-        管
-      </div>
-      <div class="min-w-0">
-        <div class="text-white text-xs font-medium truncate">管理员</div>
-        <div class="text-white/40 text-xs truncate">招聘评估系统</div>
-      </div>
+        {#if updateStep === 'checking'}
+          <span class="w-3 h-3 rounded-full border border-white/20 border-t-white/50 animate-spin"></span>
+          检查中
+        {:else}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          检查更新
+        {/if}
+      </button>
     </div>
   </div>
 </aside>
