@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
 import { chatHistoryDAO } from '$lib/server/db'
 import { createAI, AIServiceError } from '$lib/server/services/ai'
+import { buildChatContext } from '$lib/server/services/ai/chat-context'
 import type { Message } from '$lib/types'
 import { getAIConfig, AIConfigError } from '../utils'
 
@@ -35,7 +36,15 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const config = getAIConfig()
     const ai = createAI(config)
-    const reply = await ai.chat(messages)
+
+    // Inject system prompt with database context
+    const systemPrompt = buildChatContext()
+    const messagesWithContext: Message[] = [
+      { role: 'system', content: systemPrompt },
+      ...messages
+    ]
+
+    const reply = await ai.chat(messagesWithContext)
 
     // Save the last user message and the AI reply to history
     const lastUserMsg = messages.findLast((m) => m.role === 'user')

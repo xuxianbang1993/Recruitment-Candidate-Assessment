@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { marked } from 'marked'
+  import { onMount } from 'svelte'
+
   interface Props {
     role: 'user' | 'assistant'
     content: string
@@ -6,6 +9,21 @@
   }
 
   let { role, content, timestamp }: Props = $props()
+
+  let purify = $state<{ sanitize: (html: string) => string } | undefined>(undefined)
+
+  onMount(async () => {
+    const mod = await import('dompurify')
+    purify = mod.default
+  })
+
+  const renderedHtml = $derived(
+    role === 'assistant'
+      ? purify
+        ? purify.sanitize(marked.parse(content) as string)
+        : marked.parse(content) as string
+      : ''
+  )
 </script>
 
 <div class="flex gap-3 {role === 'user' ? 'flex-row-reverse' : 'flex-row'}">
@@ -16,13 +34,13 @@
       ? 'linear-gradient(135deg, #D4763C, #E8945A)'
       : 'linear-gradient(135deg, #4A7FC7, #6B9FD4)'};"
   >
-    {role === 'user' ? '李' : 'AI'}
+    {role === 'user' ? '你' : 'AI'}
   </div>
 
   <!-- Bubble -->
   <div class="max-w-[72%] min-w-0">
     <div
-      class="px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words"
+      class="px-4 py-3 rounded-2xl text-sm leading-relaxed break-words"
       style="
         background: {role === 'user' ? '#D4763C' : '#FFFFFF'};
         color: {role === 'user' ? '#FFFFFF' : '#1A1D23'};
@@ -32,7 +50,11 @@
         border-bottom-left-radius: {role === 'assistant' ? '4px' : '16px'};
       "
     >
-      {content}
+      {#if role === 'assistant'}
+        <div class="chat-prose">{@html renderedHtml}</div>
+      {:else}
+        <span class="whitespace-pre-wrap">{content}</span>
+      {/if}
     </div>
     {#if timestamp}
       <div
