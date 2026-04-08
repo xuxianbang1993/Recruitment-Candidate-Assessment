@@ -1,9 +1,9 @@
 export interface Candidate {
   id: string
+  jobId: string
   name: string
   phone: string
   email: string
-  position: string
   resumeText: string
   skills: string[]
   experience: number

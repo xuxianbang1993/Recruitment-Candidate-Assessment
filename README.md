@@ -4,12 +4,15 @@ AI 驱动的候选人评估系统，支持多维度智能打分、雷达图可�
 
 ## 核心功能
 
+- **岗位中心化管理** — 候选人通过 job_id 绑定岗位，三大页面以岗位为维度筛选
 - **AI 智能评估** — 支持 OpenAI / Claude / DeepSeek 多提供商策略切换，基于岗位模板进行多维度评分
+- **AI 对话增强** — 注入数据库全量上下文到 AI 对话，支持 Markdown 渲染
 - **简历解析** — 支持 PDF、Word 文档解析，多文件批量上传
 - **可视化报告** — 雷达图 + KPI 卡片 + 结构化文本，支持 Word 导出
 - **候选人对比** — 3-5 人多选对比，雷达图叠加展示
 - **二次评估** — 补充附件后可触发 AI 重新评估，自动关联历史记录
 - **附件管理** — 评估附件上传/查看/删除，支持类型与大小校验
+- **热更新** — 侧边栏一键检查 GitHub 更新，自动拉取代码 + 安装依赖
 
 ## 技术栈
 
@@ -80,6 +83,27 @@ src/
 ```
 
 ## 版本历史
+
+### v1.4.0 (2026-04-08)
+
+**新功能**
+- 岗位中心化重构 — candidates 表新增 job_id 外键，简历管理/智能分析/匹配报告三个页面以岗位为维度筛选
+- AI 对话增强 — 注入数据库全量上下文到 system prompt，ChatBubble 支持 Markdown 渲染
+- 热更新 — 侧边栏一键检查 GitHub 更新，git pull + npm install + Vite HMR 自动刷新
+
+**安全修复**
+- ChatBubble XSS — DOMPurify 加载前不渲染 HTML，改用纯文本回退
+- Prompt injection 防护 — `<data>` 标签分隔 + 三明治防御 + 角色过滤
+- reports 页面 DOMPurify 静态导入改为动态导入（SSR 安全）
+
+**改进**
+- 数据模型：迁移 004 清除旧数据后再添加 FK 列，确保数据完整性
+- Token 控制：chat-context 添加 MAX_JOBS/MAX_CANDIDATES/MAX_TOTAL_CHARS 限制
+- 批量删除：新增岗位级 DELETE 端点，替代逐条删除循环
+- 竞态修复：reports 页面 $effect 添加请求序号防止 stale 响应覆盖
+- 设计令牌：ChatBubble + app.css 硬编码颜色全部替换为 CSS 变量
+- 导入规范：统一为 type → external → $lib → relative 顺序
+- 测试增强：新增 getByJobId、deleteByJobId、FK 级联删除等测试（50 PASS）
 
 ### v1.3.0 (2026-04-02)
 

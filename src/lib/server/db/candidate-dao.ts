@@ -1,13 +1,13 @@
-import { getDatabase } from './database.js';
 import type { Candidate } from '$lib/types/candidate';
 import { randomUUID } from 'crypto';
+import { getDatabase } from './database.js';
 
 interface CandidateRow {
   id: string;
+  job_id: string;
   name: string;
   phone: string | null;
   email: string | null;
-  position: string | null;
   resume_text: string | null;
   skills: string | null;
   experience: number;
@@ -18,10 +18,10 @@ interface CandidateRow {
 function rowToCandidate(row: CandidateRow): Candidate {
   return {
     id: row.id,
+    jobId: row.job_id,
     name: row.name,
     phone: row.phone ?? '',
     email: row.email ?? '',
-    position: row.position ?? '',
     resumeText: row.resume_text ?? '',
     skills: row.skills ? (JSON.parse(row.skills) as string[]) : [],
     experience: row.experience,
@@ -47,18 +47,26 @@ export class CandidateDAO {
     return row ? rowToCandidate(row) : undefined;
   }
 
+  getByJobId(jobId: string): Candidate[] {
+    const db = getDatabase();
+    const rows = db
+      .prepare('SELECT * FROM candidates WHERE job_id = ? ORDER BY created_at DESC')
+      .all(jobId) as CandidateRow[];
+    return rows.map(rowToCandidate);
+  }
+
   create(data: Omit<Candidate, 'id' | 'createdAt'>): Candidate {
     const db = getDatabase();
     const id = randomUUID();
     db.prepare(
-      `INSERT INTO candidates (id, name, phone, email, position, resume_text, skills, experience, education)
+      `INSERT INTO candidates (id, job_id, name, phone, email, resume_text, skills, experience, education)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       id,
+      data.jobId,
       data.name,
       data.phone,
       data.email,
-      data.position,
       data.resumeText,
       JSON.stringify(data.skills ?? []),
       data.experience ?? 0,
@@ -84,9 +92,9 @@ export class CandidateDAO {
       fields.push('email = ?');
       values.push(data.email);
     }
-    if (data.position !== undefined) {
-      fields.push('position = ?');
-      values.push(data.position);
+    if (data.jobId !== undefined) {
+      fields.push('job_id = ?');
+      values.push(data.jobId);
     }
     if (data.resumeText !== undefined) {
       fields.push('resume_text = ?');
@@ -116,23 +124,41 @@ export class CandidateDAO {
     db.prepare('DELETE FROM candidates WHERE id = ?').run(id);
   }
 
+  deleteByJobId(jobId: string): number {
+    const db = getDatabase();
+    const result = db.prepare('DELETE FROM candidates WHERE job_id = ?').run(jobId);
+    return result.changes;
+  }
+
   deleteAll(): number {
     const db = getDatabase();
     const result = db.prepare('DELETE FROM candidates').run();
     return result.changes;
   }
 
-  search(keyword: string): Candidate[] {
+  search(keyword: string, jobId?: string): Candidate[] {
     const db = getDatabase();
     const escaped = keyword.replace(/[%_]/g, '\\$&');
     const pattern = '%' + escaped + '%';
+
+    if (jobId) {
+      const rows = db
+        .prepare(
+          `SELECT * FROM candidates
+           WHERE job_id = ? AND (name LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\')
+           ORDER BY created_at DESC`
+        )
+        .all(jobId, pattern, pattern) as CandidateRow[];
+      return rows.map(rowToCandidate);
+    }
+
     const rows = db
       .prepare(
         `SELECT * FROM candidates
-         WHERE name LIKE ? ESCAPE '\\' OR position LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\'
+         WHERE name LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\'
          ORDER BY created_at DESC`
       )
-      .all(pattern, pattern, pattern) as CandidateRow[];
+      .all(pattern, pattern) as CandidateRow[];
     return rows.map(rowToCandidate);
   }
 }

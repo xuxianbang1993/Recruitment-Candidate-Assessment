@@ -30,14 +30,29 @@ function section(name: string): void {
   console.log(`\n[${name}]`)
 }
 
+// Create a job first for FK references
+const jobDAO = new JobDAO()
+const testJob = jobDAO.create({
+  title: 'Frontend Engineer',
+  department: 'Engineering',
+  category: 'expert',
+  description: 'Build and maintain the UI',
+  requirements: ['3+ years experience', 'Svelte'],
+  skills: ['Svelte', 'TypeScript'],
+  weights: [
+    { name: 'Technical Skill', weight: 60, score: 0 },
+    { name: 'Communication', weight: 40, score: 0 },
+  ],
+})
+
 section('CandidateDAO')
 const candidateDAO = new CandidateDAO()
 
 const newCandidate = candidateDAO.create({
+  jobId: testJob.id,
   name: 'Alice',
   phone: '13800138000',
   email: 'alice@example.com',
-  position: 'Frontend Engineer',
   resumeText: 'Experienced with Svelte and TypeScript',
   skills: ['Svelte', 'TypeScript', 'CSS'],
   experience: 3,
@@ -67,25 +82,70 @@ assert(searchEmail.length >= 1, 'search: found by email substring')
 const all = candidateDAO.getAll()
 assert(all.length >= 1, 'getAll: returns at least one')
 
+// Test getByJobId
+const byJobCandidates = candidateDAO.getByJobId(testJob.id)
+assert(byJobCandidates.length >= 1, 'getByJobId: returns candidates for job')
+assert(byJobCandidates[0]?.jobId === testJob.id, 'getByJobId: jobId matches')
+
+// Test search with jobId filter
+const scopedSearch = candidateDAO.search('Alice', testJob.id)
+assert(scopedSearch.length >= 1, 'search(jobId): found by name within job')
+
+// Test deleteByJobId
+const tempJob = jobDAO.create({
+  title: 'Temp Position',
+  department: 'Test',
+  category: '',
+  description: '',
+  requirements: [],
+  skills: [],
+  weights: [],
+})
+const tempCandidate = candidateDAO.create({
+  jobId: tempJob.id,
+  name: 'Temp Candidate',
+  phone: '',
+  email: '',
+  resumeText: '',
+  skills: [],
+  experience: 0,
+  education: '',
+})
+const deleteCount = candidateDAO.deleteByJobId(tempJob.id)
+assert(deleteCount === 1, 'deleteByJobId: deleted 1 candidate')
+assert(candidateDAO.getById(tempCandidate.id) === undefined, 'deleteByJobId: candidate removed')
+jobDAO.delete(tempJob.id)
+
+// Test FK cascade delete: deleting a job should cascade delete its candidates
+const cascadeJob = jobDAO.create({
+  title: 'Cascade Test Job',
+  department: 'Test',
+  category: '',
+  description: '',
+  requirements: [],
+  skills: [],
+  weights: [],
+})
+const cascadeCandidate = candidateDAO.create({
+  jobId: cascadeJob.id,
+  name: 'CascadeTestCandidate',
+  phone: '',
+  email: '',
+  resumeText: '',
+  skills: [],
+  experience: 0,
+  education: '',
+})
+jobDAO.delete(cascadeJob.id)
+assert(candidateDAO.getById(cascadeCandidate.id) === undefined, 'FK cascade: deleting job removes its candidates')
+
 candidateDAO.delete(newCandidate.id)
 const deleted = candidateDAO.getById(newCandidate.id)
 assert(deleted === undefined, 'delete: candidate removed')
 
 section('JobDAO')
-const jobDAO = new JobDAO()
-
-const newJob = jobDAO.create({
-  title: 'Frontend Engineer',
-  department: 'Engineering',
-  category: 'expert',
-  description: 'Build and maintain the UI',
-  requirements: ['3+ years experience', 'Svelte'],
-  skills: ['Svelte', 'TypeScript'],
-  weights: [
-    { name: 'Technical Skill', weight: 60, score: 0 },
-    { name: 'Communication', weight: 40, score: 0 },
-  ],
-})
+// jobDAO already created above
+const newJob = testJob
 assert(newJob.id.length > 0, 'create: returns job with id')
 assert(newJob.title === 'Frontend Engineer', 'create: title matches')
 assert(newJob.category === 'expert', 'create: category matches')
@@ -111,10 +171,10 @@ section('AssessmentDAO')
 const assessmentDAO = new AssessmentDAO()
 
 const c2 = candidateDAO.create({
+  jobId: testJob.id,
   name: 'Bob',
   phone: '',
   email: 'bob@example.com',
-  position: 'Backend Engineer',
   resumeText: '',
   skills: [],
   experience: 2,

@@ -58,7 +58,7 @@ export function buildEvaluationPrompt(candidate: Candidate, job: Job): string {
   return `请对以下候选人进行招聘评估，并直接返回严格 JSON 对象。
 ## 候选人信息
 - 姓名：${candidate.name}
-- 应聘岗位：${candidate.position}
+- 应聘岗位：${job.title}
 - 教育背景：${candidate.education}
 - 工作年限：${candidate.experience} 年
 - 技能：${candidateSkills}
@@ -180,7 +180,6 @@ export function buildReEvaluationPrompt(
 
 ## 候选人信息
 - 姓名：${candidate.name}
-- 应聘岗位：${candidate.position}
 - 简历内容：
 ${candidate.resumeText}
 

@@ -13,6 +13,7 @@
   --color-warning: #D4963C;
   --color-danger: #C75450;
   --color-info: #4A7FC7;
+  --color-info-light: #6B9FD4;
   --color-border: #E8E5E0;
   --color-text-sidebar: #E5E7EB;
   --color-accent-bg: rgba(212,118,60,0.08);
@@ -54,4 +55,88 @@ body {
 
 .page-enter {
   animation: fadeUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Chat markdown prose */
+.chat-prose {
+  line-height: 1.6;
+}
+.chat-prose p {
+  margin: 0.4em 0;
+}
+.chat-prose p:first-child {
+  margin-top: 0;
+}
+.chat-prose p:last-child {
+  margin-bottom: 0;
+}
+.chat-prose h1, .chat-prose h2, .chat-prose h3 {
+  font-weight: 600;
+  margin: 0.6em 0 0.3em;
+  color: var(--color-text-primary);
+}
+.chat-prose h1 { font-size: 1.1em; }
+.chat-prose h2 { font-size: 1.05em; }
+.chat-prose h3 { font-size: 1em; }
+.chat-prose ul, .chat-prose ol {
+  margin: 0.3em 0;
+  padding-left: 1.4em;
+}
+.chat-prose li {
+  margin: 0.15em 0;
+}
+.chat-prose strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.chat-prose code {
+  background: rgba(0,0,0,0.05);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: 'Menlo', 'Consolas', monospace;
+}
+.chat-prose pre {
+  background: var(--color-bg-sidebar);
+  color: var(--color-text-sidebar);
+  padding: 0.8em 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+  font-size: 0.85em;
+}
+.chat-prose pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+.chat-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  font-size: 0.9em;
+}
+.chat-prose th, .chat-prose td {
+  border: 1px solid var(--color-border);
+  padding: 0.4em 0.6em;
+  text-align: left;
+}
+.chat-prose th {
+  background: var(--color-accent-bg);
+  font-weight: 600;
+}
+.chat-prose blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding-left: 0.8em;
+  margin: 0.5em 0;
+  color: var(--color-text-secondary);
+}
+.chat-prose hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 0.6em 0;
+}
+.chat-prose a {
+  color: var(--color-info);
+  text-decoration: underline;
 }

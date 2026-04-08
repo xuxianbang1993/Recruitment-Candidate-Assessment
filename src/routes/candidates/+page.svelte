@@ -2,21 +2,47 @@
   import { onMount } from 'svelte'
   import ResumeUploader from '$lib/components/ResumeUploader.svelte'
   import CandidateCard from '$lib/components/CandidateCard.svelte'
-  import type { Candidate } from '$lib/types'
+  import type { Candidate, Job } from '$lib/types'
   import { showConfirm } from '$lib/utils/dialog'
 
+  let jobs = $state<Job[]>([])
+  let selectedJobId = $state('')
   let candidates = $state<Candidate[]>([])
   let keyword = $state('')
   let loading = $state(false)
+  let loadingJobs = $state(false)
   let error = $state('')
   let searchDebounce: ReturnType<typeof setTimeout>
 
-  async function fetchCandidates(kw = '') {
+  async function fetchJobs() {
+    loadingJobs = true
+    try {
+      const res = await fetch('/api/jobs')
+      if (res.ok) {
+        const json = await res.json()
+        jobs = json.success ? (json.data ?? []) : []
+        if (jobs.length > 0 && !selectedJobId) {
+          selectedJobId = jobs[0].id
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      loadingJobs = false
+    }
+  }
+
+  async function fetchCandidates() {
+    if (!selectedJobId) {
+      candidates = []
+      return
+    }
     loading = true
     error = ''
     try {
-      const url = kw ? `/api/candidates?keyword=${encodeURIComponent(kw)}` : '/api/candidates'
-      const res = await fetch(url)
+      const params = new URLSearchParams({ jobId: selectedJobId })
+      if (keyword) params.set('keyword', keyword)
+      const res = await fetch(`/api/candidates?${params}`)
       if (res.ok) {
         const data = await res.json()
         candidates = data.data ?? []
@@ -30,9 +56,14 @@
     }
   }
 
+  function handleJobChange() {
+    keyword = ''
+    fetchCandidates()
+  }
+
   function handleSearch() {
     clearTimeout(searchDebounce)
-    searchDebounce = setTimeout(() => fetchCandidates(keyword), 350)
+    searchDebounce = setTimeout(() => fetchCandidates(), 350)
   }
 
   function handleUpload(candidate: Candidate) {
@@ -40,7 +71,7 @@
   }
 
   async function handleDelete(id: string) {
-    if (!(await showConfirm('确定要删除该候选人吗？\n\n⚠️ 同时将删除该候选人的所有评估记录和附件数据。\n此操作不可撤销。'))) return
+    if (!(await showConfirm('确定要删除该候选人吗？\n\n此操作不可撤销。'))) return
     try {
       const res = await fetch(`/api/candidates/${id}`, { method: 'DELETE' })
       if (res.ok) {
@@ -58,9 +89,9 @@
   }
 
   async function handleClearAll() {
-    if (!(await showConfirm(`确定要清空全部 ${candidates.length} 位候选人吗？\n\n⚠️ 同时将删除所有关联的评估记录和附件数据。\n此操作不可撤销。`))) return
+    if (!(await showConfirm(`确定要清空该岗位下全部 ${candidates.length} 位候选人吗？\n\n此操作不可撤销。`))) return
     try {
-      const res = await fetch('/api/candidates', { method: 'DELETE' })
+      const res = await fetch(`/api/candidates?jobId=${encodeURIComponent(selectedJobId)}`, { method: 'DELETE' })
       if (res.ok) {
         candidates = []
       } else {
@@ -71,8 +102,9 @@
     }
   }
 
-  onMount(() => {
-    fetchCandidates()
+  onMount(async () => {
+    await fetchJobs()
+    if (selectedJobId) fetchCandidates()
   })
 </script>
 
@@ -120,41 +152,71 @@
   </div>
 {/if}
 
-<!-- Upload Area -->
-<div class="mb-6">
-  <ResumeUploader onupload={handleUpload} />
+<!-- Job Selector -->
+<div class="mb-4">
+  {#if loadingJobs}
+    <div class="h-10 rounded-lg animate-pulse" style="background: var(--color-bg-card);"></div>
+  {:else if jobs.length === 0}
+    <div
+      class="px-4 py-3 rounded-xl text-sm"
+      style="background: var(--color-accent-bg); border: 1px solid rgba(212,118,60,0.2); color: var(--color-accent);"
+    >
+      暂无岗位，请先在「岗位需求」中创建岗位
+      <a href="/assessment" class="underline font-medium ml-1">去创建</a>
+    </div>
+  {:else}
+    <select
+      bind:value={selectedJobId}
+      onchange={handleJobChange}
+      class="w-full h-10 px-3 rounded-lg text-sm outline-none cursor-pointer"
+      style="background: var(--color-bg-card); border: 1px solid var(--color-border); color: var(--color-text-primary);"
+    >
+      {#each jobs as job}
+        <option value={job.id}>{job.title} — {job.department}</option>
+      {/each}
+    </select>
+  {/if}
 </div>
 
-<!-- Search Bar -->
-<div class="mb-4 flex items-center gap-3">
-  <div class="relative flex-1">
-    <div class="absolute left-3 top-1/2 -translate-y-1/2" style="color: var(--color-text-secondary);">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-    </div>
-    <input
-      type="text"
-      placeholder="搜索候选人姓名、技能、职位..."
-      bind:value={keyword}
-      oninput={handleSearch}
-      class="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm outline-none transition-all duration-200"
-      style="
-        background: var(--color-bg-card);
-        border: 1px solid var(--color-border);
-        color: var(--color-text-primary);
-      "
-    />
+<!-- Upload Area -->
+{#if selectedJobId}
+  <div class="mb-6">
+    <ResumeUploader onupload={handleUpload} jobId={selectedJobId} />
   </div>
-  <button
-    onclick={() => { keyword = ''; fetchCandidates() }}
-    class="px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200"
-    style="background: var(--color-bg-card); border: 1px solid var(--color-border); color: var(--color-text-secondary);"
-  >
-    重置
-  </button>
-</div>
+{/if}
+
+<!-- Search Bar -->
+{#if selectedJobId}
+  <div class="mb-4 flex items-center gap-3">
+    <div class="relative flex-1">
+      <div class="absolute left-3 top-1/2 -translate-y-1/2" style="color: var(--color-text-secondary);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+      </div>
+      <input
+        type="text"
+        placeholder="搜索候选人姓名..."
+        bind:value={keyword}
+        oninput={handleSearch}
+        class="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm outline-none transition-all duration-200"
+        style="
+          background: var(--color-bg-card);
+          border: 1px solid var(--color-border);
+          color: var(--color-text-primary);
+        "
+      />
+    </div>
+    <button
+      onclick={() => { keyword = ''; fetchCandidates() }}
+      class="px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200"
+      style="background: var(--color-bg-card); border: 1px solid var(--color-border); color: var(--color-text-secondary);"
+    >
+      重置
+    </button>
+  </div>
+{/if}
 
 <!-- Candidate List -->
 {#if loading}
@@ -165,6 +227,8 @@
     ></div>
     <span class="ml-3 text-sm" style="color: var(--color-text-secondary);">加载中...</span>
   </div>
+{:else if !selectedJobId}
+  <!-- no job selected, empty state handled by job selector -->
 {:else if candidates.length === 0}
   <div
     class="flex flex-col items-center justify-center py-20 rounded-2xl"
@@ -180,7 +244,7 @@
       </svg>
     </div>
     <p class="text-sm font-medium mb-1" style="color: var(--color-text-primary);">
-      {keyword ? '未找到匹配的候选人' : '暂无候选人'}
+      {keyword ? '未找到匹配的候选人' : '该岗位暂无候选人'}
     </p>
     <p class="text-xs" style="color: var(--color-text-secondary);">
       {keyword ? '请尝试其他关键词' : '上传简历后，候选人将在此显示'}

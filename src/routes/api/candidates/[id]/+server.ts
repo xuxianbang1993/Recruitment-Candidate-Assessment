@@ -1,7 +1,7 @@
-import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { candidateDAO, getDatabase } from '$lib/server/db'
+import { json } from '@sveltejs/kit'
 import { unlinkSync } from 'fs'
+import { candidateDAO, getDatabase } from '$lib/server/db'
 
 export const GET: RequestHandler = ({ params }) => {
   try {
@@ -40,7 +40,7 @@ export const PUT: RequestHandler = async ({ params, request }) => {
     if ('name' in data) update.name = String(data.name)
     if ('phone' in data) update.phone = String(data.phone)
     if ('email' in data) update.email = String(data.email)
-    if ('position' in data) update.position = String(data.position)
+    if ('jobId' in data) update.jobId = String(data.jobId)
     if ('resumeText' in data) update.resumeText = String(data.resumeText)
     if ('education' in data) update.education = String(data.education)
     if ('experience' in data) update.experience = Number(data.experience)

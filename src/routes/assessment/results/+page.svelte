@@ -34,18 +34,13 @@
   async function fetchData() {
     loading = true
     try {
-      const [aRes, cRes, jRes] = await Promise.all([
+      const [aRes, jRes] = await Promise.all([
         fetch('/api/assessments'),
-        fetch('/api/candidates'),
         fetch('/api/jobs'),
       ])
       if (aRes.ok) {
         const d = await aRes.json()
         assessments = d.success ? (d.data ?? []) : []
-      }
-      if (cRes.ok) {
-        const d = await cRes.json()
-        candidates = d.success ? (d.data ?? []) : []
       }
       if (jRes.ok) {
         const d = await jRes.json()
@@ -54,10 +49,27 @@
           selectedJobId = jobs[0].id
         }
       }
+      await fetchCandidatesForJob()
     } catch {
       // silently ignore
     } finally {
       loading = false
+    }
+  }
+
+  async function fetchCandidatesForJob() {
+    if (!selectedJobId) {
+      candidates = []
+      return
+    }
+    try {
+      const res = await fetch(`/api/candidates?jobId=${selectedJobId}`)
+      if (res.ok) {
+        const d = await res.json()
+        candidates = d.success ? (d.data ?? []) : []
+      }
+    } catch {
+      // ignore
     }
   }
 
@@ -150,6 +162,7 @@
     {#if jobs.length > 0}
       <select
         bind:value={selectedJobId}
+        onchange={() => { selectedChartIdx = 0; fetchCandidatesForJob() }}
         class="px-3 py-2 rounded-xl text-sm outline-none cursor-pointer"
         style="background: var(--color-bg-card); border: 1px solid var(--color-border); color: var(--color-text-primary);"
       >
