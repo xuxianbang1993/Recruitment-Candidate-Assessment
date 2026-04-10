@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { Job, ResumeProfileFull } from '$lib/types'
   import ResumeProfileCard from '$lib/components/ResumeProfileCard.svelte'
 
@@ -41,7 +42,7 @@
   $effect(() => {
     if (initialized) return
     initialized = true
-    void fetchJobs()
+    untrack(() => void fetchJobs())
   })
 
   $effect(() => {
@@ -52,7 +53,7 @@
       return
     }
 
-    void fetchProfiles(jobId)
+    untrack(() => void fetchProfiles(jobId))
   })
 
   async function fetchJobs(): Promise<void> {
