@@ -9,3 +9,6 @@ export { TextResumeParser } from './text-parser.js'
 
 // Factory
 export { getParser, parseResume } from './parser-factory.js'
+
+// OCR service
+export { ocrService } from './ocr-service.js'
