@@ -7,3 +7,7 @@ export { ChatHistoryDAO, chatHistoryDAO } from './chat-history-dao.js';
 export type { ChatHistoryEntry } from './chat-history-dao.js';
 export { AttachmentDAO, attachmentDAO } from './attachment-dao.js'
 export type { Attachment } from './attachment-dao.js'
+export { ResumeProfileDAO, resumeProfileDAO } from './resume-profile-dao.js'
+export { WorkExperienceDAO, workExperienceDAO } from './work-experience-dao.js'
+export { EducationHistoryDAO, educationHistoryDAO } from './education-history-dao.js'
+export { ProjectExperienceDAO, projectExperienceDAO } from './project-experience-dao.js'

@@ -1,7 +1,7 @@
 {
 	"name": "recruitment-assessment",
 	"private": true,
-	"version": "1.4.1",
+	"version": "1.5.0",
 	"type": "module",
 	"main": "electron/main.js",
 	"scripts": {
@@ -26,7 +26,6 @@
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
 		"@tailwindcss/vite": "^4.2.1",
 		"@types/better-sqlite3": "^7.6.13",
-		"@types/pdf-parse": "^1.1.5",
 		"cross-env": "^10.1.0",
 		"electron": "^41.0.2",
 		"electron-builder": "^26.8.1",
@@ -40,6 +39,7 @@
 		"@anthropic-ai/sdk": "^0.79.0",
 		"@fontsource/noto-sans-sc": "^5.2.9",
 		"@fontsource/playfair-display": "^5.2.8",
+		"@napi-rs/canvas": "^0.1.97",
 		"@types/dompurify": "^3.0.5",
 		"better-sqlite3": "^12.8.0",
 		"chart.js": "^4.5.1",
@@ -47,7 +47,8 @@
 		"dompurify": "^3.3.3",
 		"mammoth": "^1.12.0",
 		"marked": "^17.0.4",
+		"multilingual-purejs-ocr": "^1.0.1",
 		"openai": "^6.31.0",
-		"pdf-parse": "^2.4.5"
+		"unpdf": "^1.4.0"
 	}
 }

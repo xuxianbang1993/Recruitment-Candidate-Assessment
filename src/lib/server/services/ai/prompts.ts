@@ -1,7 +1,7 @@
-﻿import type { Candidate } from '$lib/types/candidate'
-import type { Assessment, Job } from '$lib/types/assessment'
-import { JOB_TEMPLATES, getDimensionTemplate } from '$lib/config/job-templates'
+import type { Assessment, Job, ResumeProfileFull } from '$lib/types'
 import type { JobCategory } from '$lib/config/job-templates'
+import { JOB_TEMPLATES, getDimensionTemplate } from '$lib/config/job-templates'
+import { ProfilePromptBuilder } from './profile-prompt-builder'
 
 function normalizeWeight(weight: number): number {
   return weight <= 1 ? Math.round(weight * 100) : Math.round(weight)
@@ -20,50 +20,55 @@ function buildBehaviorContext(job: Job, mode: 'evaluation' | 'report'): string {
     return [
       '## 评分参考（行为锚点）',
       ...template.dimensions.map(
-        (d) => appendIndicators(`- ${d.name}：正向「${d.positive}」；反向「${d.negative}」`, d.indicators),
-      ),
+        (dimension) =>
+          appendIndicators(
+            `- ${dimension.name}：正向「${dimension.positive}」；反向「${dimension.negative}」`,
+            dimension.indicators
+          )
+      )
     ].join('\n')
   }
 
   return [
     '## 维度行为标准',
     ...template.dimensions.map(
-      (d) => appendIndicators(`- ${d.name}：${d.definition}（正向：${d.positive}；反向：${d.negative}）`, d.indicators),
-    ),
+      (dimension) =>
+        appendIndicators(
+          `- ${dimension.name}：${dimension.definition}（正向：${dimension.positive}；反向：${dimension.negative}）`,
+          dimension.indicators
+        )
+    )
   ].join('\n')
 }
 
-export function buildEvaluationPrompt(candidate: Candidate, job: Job): string {
+/**
+ * Builds the structured evaluation prompt using resume profile data instead of raw resume text.
+ */
+export function buildEvaluationPrompt(profile: ResumeProfileFull, job: Job): string {
   const dimensionsList = [
     job.weights
-      .map((dim) => {
-        const tmpl = job.category ? getDimensionTemplate(job.category as JobCategory, dim.name) : undefined
-        const base = `- ${dim.name}（权重 ${normalizeWeight(dim.weight)}%）`
-        if (tmpl?.indicators && tmpl.indicators.length > 0) {
-          return base + '\n  关键指标：' + tmpl.indicators.join('；')
+      .map((dimension) => {
+        const template = job.category
+          ? getDimensionTemplate(job.category as JobCategory, dimension.name)
+          : undefined
+        const base = `- ${dimension.name}（权重 ${normalizeWeight(dimension.weight)}%）`
+        if (template?.indicators && template.indicators.length > 0) {
+          return base + '\n  关键指标：' + template.indicators.join('；')
         }
         return base
       })
       .join('\n'),
-    buildBehaviorContext(job, 'evaluation'),
+    buildBehaviorContext(job, 'evaluation')
   ]
     .filter(Boolean)
     .join('\n\n')
 
-  const candidateSkills = candidate.skills.length > 0 ? candidate.skills.join('、') : '无'
   const jobSkills = job.skills.length > 0 ? job.skills.join('、') : '无'
   const requirements =
     job.requirements.length > 0 ? job.requirements.map((item) => `  - ${item}`).join('\n') : '  - 无'
 
   return `请对以下候选人进行招聘评估，并直接返回严格 JSON 对象。
-## 候选人信息
-- 姓名：${candidate.name}
-- 应聘岗位：${job.title}
-- 教育背景：${candidate.education}
-- 工作年限：${candidate.experience} 年
-- 技能：${candidateSkills}
-- 简历内容：
-${candidate.resumeText}
+${ProfilePromptBuilder.fromProfile(profile)}
 
 ## 岗位要求
 - 职位名称：${job.title}
@@ -103,14 +108,21 @@ ${dimensionsList}
 }`
 }
 
-export function buildReportPrompt(assessment: Assessment, candidate: Candidate, job: Job): string {
+/**
+ * Builds the professional report-generation prompt using structured profile data.
+ */
+export function buildReportPrompt(
+  assessment: Assessment,
+  profile: ResumeProfileFull,
+  job: Job
+): string {
   const scoresSummary = [
     assessment.scores
       .map(
-        (score) => `- ${score.name}：${score.score} 分（权重 ${normalizeWeight(score.weight)}%）`,
+        (score) => `- ${score.name}：${score.score} 分（权重 ${normalizeWeight(score.weight)}%）`
       )
       .join('\n'),
-    buildBehaviorContext(job, 'report'),
+    buildBehaviorContext(job, 'report')
   ]
     .filter(Boolean)
     .join('\n\n')
@@ -120,9 +132,7 @@ export function buildReportPrompt(assessment: Assessment, candidate: Candidate, 
   const suggestions = assessment.suggestions.map((suggestion) => `- ${suggestion}`).join('\n') || '- 无'
 
   return `请根据以下评估数据，生成一份专业的招聘评估报告（Markdown 格式）。
-## 候选人
-- 姓名：${candidate.name}
-- 应聘职位：${job.title}（${job.department}）
+${ProfilePromptBuilder.fromProfile(profile)}
 
 ## 评分结果
 - 综合得分：${assessment.totalScore} 分
@@ -148,20 +158,23 @@ ${suggestions}
 - 各章节使用 ## 二级标题分隔。`
 }
 
+/**
+ * Builds the re-evaluation prompt using structured resume profile data plus attachment evidence.
+ */
 export function buildReEvaluationPrompt(
-  candidate: Candidate,
+  profile: ResumeProfileFull,
   job: Job,
   initialAssessment: Assessment,
   attachmentTexts: string[]
 ): string {
-  const dimList = job.weights
-    .map((dim) => {
-      const tmpl = job.category
-        ? getDimensionTemplate(job.category as JobCategory, dim.name)
+  const dimensionList = job.weights
+    .map((dimension) => {
+      const template = job.category
+        ? getDimensionTemplate(job.category as JobCategory, dimension.name)
         : undefined
-      const base = `- ${dim.name}（权重 ${normalizeWeight(dim.weight)}%）`
-      if (tmpl?.indicators && tmpl.indicators.length > 0) {
-        return base + '\n  关键指标：' + tmpl.indicators.join('；')
+      const base = `- ${dimension.name}（权重 ${normalizeWeight(dimension.weight)}%）`
+      if (template?.indicators && template.indicators.length > 0) {
+        return base + '\n  关键指标：' + template.indicators.join('；')
       }
       return base
     })
@@ -178,10 +191,7 @@ export function buildReEvaluationPrompt(
 
   return `你现在拥有该候选人的简历和面试补充材料。请综合所有信息重新评分。
 
-## 候选人信息
-- 姓名：${candidate.name}
-- 简历内容：
-${candidate.resumeText}
+${ProfilePromptBuilder.fromProfile(profile)}
 
 ## 初评结果（仅供参考，需根据补充材料调整）
 - 初评总分：${initialAssessment.totalScore}
@@ -191,7 +201,7 @@ ${initialScores}
 ${attachmentContent}
 
 ## 评分维度（满分 100）
-${dimList}
+${dimensionList}
 
 ${buildBehaviorContext(job, 'evaluation')}
 

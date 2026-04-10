@@ -1,11 +1,10 @@
-import OpenAI from 'openai'
-import type { AIStrategy } from './ai-strategy'
 import type { Message } from '$lib/types/ai'
-import type { Candidate } from '$lib/types/candidate'
-import type { Assessment, Job } from '$lib/types/assessment'
+import type { Assessment, Job, ResumeProfileFull } from '$lib/types'
+import OpenAI from 'openai'
 import { AIServiceError } from './errors'
 import { buildEvaluationPrompt, buildReportPrompt } from './prompts'
 import { safeParseEvaluation } from './evaluation-parser'
+import type { AIStrategy } from './ai-strategy'
 
 interface OpenAIConfig {
   apiKey: string
@@ -57,10 +56,10 @@ export class OpenAIStrategy implements AIStrategy {
   }
 
   async evaluate(
-    candidate: Candidate,
+    profile: ResumeProfileFull,
     job: Job
   ): Promise<Omit<Assessment, 'id' | 'createdAt'>> {
-    const prompt = buildEvaluationPrompt(candidate, job)
+    const prompt = buildEvaluationPrompt(profile, job)
 
     let raw: string
     try {
@@ -84,7 +83,7 @@ export class OpenAIStrategy implements AIStrategy {
     const result = safeParseEvaluation(raw, job)
 
     return {
-      candidateId: candidate.id,
+      candidateId: profile.candidateId,
       jobId: job.id,
       type: 'initial',
       parentId: null,
@@ -99,10 +98,10 @@ export class OpenAIStrategy implements AIStrategy {
 
   async generateReport(
     assessment: Assessment,
-    candidate: Candidate,
+    profile: ResumeProfileFull,
     job: Job
   ): Promise<string> {
-    const prompt = buildReportPrompt(assessment, candidate, job)
+    const prompt = buildReportPrompt(assessment, profile, job)
 
     try {
       return await this.streamToString({

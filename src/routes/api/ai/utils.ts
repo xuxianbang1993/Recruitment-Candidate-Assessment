@@ -1,5 +1,5 @@
-import { settingsDAO } from '$lib/server/db'
-import type { AIConfig } from '$lib/types'
+import type { AIConfig, ResumeProfileFull } from '$lib/types'
+import { resumeProfileDAO, settingsDAO } from '$lib/server/db'
 
 export class AIConfigError extends Error {
   constructor(message: string) {
@@ -19,4 +19,18 @@ export function getAIConfig(): AIConfig {
   }
 
   return { provider, apiKey, model: model ?? '', baseUrl: baseUrl || undefined }
+}
+
+/**
+ * Loads the latest structured resume profile for a candidate within a specific job.
+ */
+export function getResumeProfileByCandidateAndJob(
+  candidateId: string,
+  jobId: string
+): ResumeProfileFull | undefined {
+  const profile = resumeProfileDAO
+    .getByJobId(jobId)
+    .find((item) => item.candidateId === candidateId)
+
+  return profile ? resumeProfileDAO.getFullById(profile.id) : undefined
 }

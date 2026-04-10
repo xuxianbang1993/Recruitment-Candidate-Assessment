@@ -1,8 +1,9 @@
-import { jobDAO, candidateDAO, assessmentDAO } from '$lib/server/db'
-import type { Job, Assessment } from '$lib/types/assessment'
+import type { Assessment, Job, ResumeProfileFull } from '$lib/types'
 import type { Candidate } from '$lib/types/candidate'
+import { assessmentDAO, candidateDAO, jobDAO, resumeProfileDAO } from '$lib/server/db'
+import { ProfilePromptBuilder } from './profile-prompt-builder'
 
-const MAX_RESUME_CHARS = 200
+const MAX_PROFILE_CHARS = 400
 const MAX_ITEMS_PER_LIST = 3
 const MAX_JOBS = 20
 const MAX_CANDIDATES_PER_JOB = 10
@@ -20,20 +21,40 @@ function formatScoreSummary(assessment: Assessment): string {
   return `总分${assessment.totalScore}（${dims}）`
 }
 
-function formatCandidate(candidate: Candidate, assessments: Assessment[]): string {
+function formatStructuredProfile(profile: ResumeProfileFull): string[] {
+  return truncate(ProfilePromptBuilder.fromProfile(profile), MAX_PROFILE_CHARS)
+    .split('\n')
+    .filter((line) => line.length > 0)
+    .map((line) => `    ${line}`)
+}
+
+function getProfilesByCandidateId(candidates: Candidate[]): Map<string, ResumeProfileFull> {
+  const profiles = new Map<string, ResumeProfileFull>()
+
+  for (const candidate of candidates) {
+    const profile = resumeProfileDAO.getByCandidateId(candidate.id)
+    if (!profile) continue
+
+    const fullProfile = resumeProfileDAO.getFullById(profile.id)
+    if (fullProfile) {
+      profiles.set(candidate.id, fullProfile)
+    }
+  }
+
+  return profiles
+}
+
+function formatCandidate(
+  candidate: Candidate,
+  profile: ResumeProfileFull | undefined,
+  assessments: Assessment[]
+): string {
   const parts: string[] = []
-  parts.push(`  - ${candidate.name}`)
-  if (candidate.skills.length > 0) {
-    parts.push(`    技能：${candidate.skills.join('、')}`)
-  }
-  if (candidate.experience > 0) {
-    parts.push(`    经验：${candidate.experience}年`)
-  }
-  if (candidate.education) {
-    parts.push(`    学历：${candidate.education}`)
-  }
-  if (candidate.resumeText) {
-    parts.push(`    简历摘要：${truncate(candidate.resumeText, MAX_RESUME_CHARS)}`)
+  parts.push(`  - ${profile?.name || candidate.name}`)
+  if (profile) {
+    parts.push(...formatStructuredProfile(profile))
+  } else {
+    parts.push('    简历档案：暂无结构化简历')
   }
 
   const candidateAssessments = assessments.filter((a) => a.candidateId === candidate.id)
@@ -53,7 +74,12 @@ function formatCandidate(candidate: Candidate, assessments: Assessment[]): strin
   return parts.join('\n')
 }
 
-function formatJob(job: Job, candidates: Candidate[], assessments: Assessment[]): string {
+function formatJob(
+  job: Job,
+  candidates: Candidate[],
+  profilesByCandidateId: Map<string, ResumeProfileFull>,
+  assessments: Assessment[]
+): string {
   const parts: string[] = []
   parts.push(`### ${job.title}（${job.department}）`)
   if (job.description) {
@@ -74,7 +100,7 @@ function formatJob(job: Job, candidates: Candidate[], assessments: Assessment[])
     const suffix = totalForJob > MAX_CANDIDATES_PER_JOB ? `，仅展示前${MAX_CANDIDATES_PER_JOB}人` : ''
     parts.push(`候选人（${totalForJob}人${suffix}）：`)
     for (const c of jobCandidates) {
-      parts.push(formatCandidate(c, assessments))
+      parts.push(formatCandidate(c, profilesByCandidateId.get(c.id), assessments))
     }
   } else {
     parts.push('候选人：暂无')
@@ -88,6 +114,7 @@ export function buildChatContext(): string {
   const jobs = jobDAO.getAll()
   const candidates = candidateDAO.getAll()
   const assessments = assessmentDAO.getAll()
+  const profilesByCandidateId = getProfilesByCandidateId(candidates)
 
   const totalCandidates = candidates.length
   const totalAssessments = assessments.length
@@ -114,7 +141,7 @@ export function buildChatContext(): string {
   if (jobsToShow.length > 0) {
     dataParts.push('\n## 岗位与候选人详情')
     for (const job of jobsToShow) {
-      dataParts.push(formatJob(job, candidates, assessments))
+      dataParts.push(formatJob(job, candidates, profilesByCandidateId, assessments))
     }
     if (jobs.length > MAX_JOBS) {
       dataParts.push(`\n（共${jobs.length}个岗位，仅展示前${MAX_JOBS}个）`)
@@ -128,7 +155,7 @@ export function buildChatContext(): string {
   if (orphanCandidates.length > 0) {
     dataParts.push('\n## 未分配岗位的候选人')
     for (const c of orphanCandidates) {
-      dataParts.push(formatCandidate(c, assessments))
+      dataParts.push(formatCandidate(c, profilesByCandidateId.get(c.id), assessments))
     }
   }
 

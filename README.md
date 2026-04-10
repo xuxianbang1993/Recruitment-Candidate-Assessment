@@ -7,7 +7,8 @@ AI 驱动的候选人评估系统，支持多维度智能打分、雷达图可�
 - **岗位中心化管理** — 候选人通过 job_id 绑定岗位，三大页面以岗位为维度筛选
 - **AI 智能评估** — 支持 OpenAI / Claude / DeepSeek 多提供商策略切换，基于岗位模板进行多维度评分
 - **AI 对话增强** — 注入数据库全量上下文到 AI 对话，支持 Markdown 渲染
-- **简历解析** — 支持 PDF、Word 文档解析，多文件批量上传
+- **简历解析** — 支持 PDF、Word 文档解析，多文件批量上传，扫描件自动 OCR 识别
+- **简历信息库** — AI 结构化解析简历，按岗位过滤浏览，支持手动编辑与重新解析
 - **可视化报告** — 雷达图 + KPI 卡片 + 结构化文本，支持 Word 导出
 - **候选人对比** — 3-5 人多选对比，雷达图叠加展示
 - **二次评估** — 补充附件后可触发 AI 重新评估，自动关联历史记录
@@ -23,6 +24,7 @@ AI 驱动的候选人评估系统，支持多维度智能打分、雷达图可�
 | 桌面 | Electron (主/渲染进程分离) |
 | 数据库 | SQLite (better-sqlite3, WAL mode) |
 | AI | OpenAI / Claude / DeepSeek (策略模式) |
+| OCR | PaddleOCR v4 (multilingual-purejs-ocr, ONNX) |
 | 图表 | Chart.js |
 
 ## 架构
@@ -39,7 +41,7 @@ DAO (数据访问)
 Foundation (数据库 / 文件系统)
 ```
 
-设计模式：策略模式 (AI)、工厂模式 (AI/Resume)、单例模式 (DB)、模板方法 (Parser)、DAO (数据访问)
+设计模式：策略模式 (AI)、工厂模式 (AI/Resume)、单例模式 (DB/OCR)、模板方法 (Parser)、DAO (数据访问)、责任链 (简历解析)
 
 ## 快速开始
 
@@ -77,12 +79,32 @@ src/
 │   ├── api/                 # API 端点
 │   ├── assessment/          # 评估页面
 │   ├── candidates/          # 候选人管理
+│   ├── resume-profiles/     # 简历信息库
 │   ├── reports/             # 报告页面
 │   └── settings/            # 设置页面
 └── electron/                # Electron 主进程
 ```
 
 ## 版本历史
+
+### v1.5.0 (2026-04-10)
+
+**新功能**
+- 简历信息库 — AI 结构化解析简历，自动提取姓名/联系方式/工作经历/教育背景/项目经验等
+- 扫描件 OCR — 图片型 PDF 自动降级为 PaddleOCR v4 中文识别，支持离线使用
+- 简历档案 CRUD — 按岗位过滤浏览，支持手动编辑、重新 AI 解析、级联删除
+- 上传自动解析 — 简历上传时自动触发结构化解析，结果同步到简历信息库
+
+**技术改进**
+- PDF 引擎升级 — 从 pdf-parse 迁移到 unpdf (Mozilla pdf.js)，提升中文 CJK 提取质量
+- 责任链模式 — 简历解析流程使用 Chain of Responsibility (文本清洗 → AI 解析 → 数据验证)
+- 数据库扩展 — 新增 4 张表 (resume_profiles, work_experiences, education_history, project_experiences)
+- OcrService 单例 — Promise 缓存防并发竞态，MAX_OCR_PAGES=20 限制内存消耗
+
+**修复**
+- 扫描件 PDF 上传不再返回 500 服务器内部错误
+- 简历信息库页面 $effect 无限循环导致加载卡死
+- unpdf getDocumentProxy 与 renderPageAsImage 的 worker 冲突
 
 ### v1.4.0 (2026-04-08)
 
