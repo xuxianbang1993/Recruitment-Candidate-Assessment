@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module'
 import path from 'node:path'
-import { renderPageAsImage, getDocumentProxy } from 'unpdf'
+import { renderPageAsImage } from 'unpdf'
 
 // Resolve ONNX model paths relative to the installed package
 const require = createRequire(import.meta.url)
@@ -49,28 +49,23 @@ class OcrService {
 
   /**
    * Renders each page of a PDF buffer to an image and runs OCR.
-   * Returns the concatenated text from all pages.
+   * Accepts pageCount from the caller to avoid a separate getDocumentProxy call
+   * (which conflicts with renderPageAsImage's internal worker).
    */
-  async recognizeFromPdf(buffer: Buffer): Promise<string> {
+  async recognizeFromPdf(buffer: Buffer, pageCount: number): Promise<string> {
     const pdfData = new Uint8Array(buffer)
-    const doc = await getDocumentProxy(pdfData)
-    const pageCount = doc.numPages
     const pageTexts: string[] = []
 
-    try {
-      for (let page = 1; page <= pageCount; page++) {
-        const imageData = await renderPageAsImage(pdfData, page, {
-          scale: 2,
-          canvasImport: () => import('@napi-rs/canvas')
-        })
-        const imageBuffer = Buffer.from(imageData)
-        const text = await this.recognizeFromImage(imageBuffer)
-        if (text.length > 0) {
-          pageTexts.push(text)
-        }
+    for (let page = 1; page <= pageCount; page++) {
+      const imageData = await renderPageAsImage(pdfData, page, {
+        scale: 2,
+        canvasImport: () => import('@napi-rs/canvas')
+      })
+      const imageBuffer = Buffer.from(imageData)
+      const text = await this.recognizeFromImage(imageBuffer)
+      if (text.length > 0) {
+        pageTexts.push(text)
       }
-    } finally {
-      await doc.destroy()
     }
 
     return pageTexts.join('\n\n')

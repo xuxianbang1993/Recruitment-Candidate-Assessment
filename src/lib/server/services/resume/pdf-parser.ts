@@ -42,7 +42,7 @@ export class PdfResumeParser implements ResumeParser {
     const rawText = normalizePdfText(result.text)
 
     if (rawText.trim().length === 0) {
-      const ocrText = await ocrService.recognizeFromPdf(buffer)
+      const ocrText = await ocrService.recognizeFromPdf(buffer, result.totalPages)
       if (ocrText.trim().length === 0) {
         throw new Error(
           `PDF 文件 "${filename}" 为扫描件且 OCR 无法识别文字内容，请上传包含可复制文字的简历`
