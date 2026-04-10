@@ -1,8 +1,8 @@
 import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { candidateDAO, jobDAO, assessmentDAO } from '$lib/server/db'
+import { assessmentDAO, jobDAO } from '$lib/server/db'
 import { createAI, AIServiceError } from '$lib/server/services/ai'
-import { getAIConfig, AIConfigError } from '../utils'
+import { AIConfigError, getAIConfig, getResumeProfileByCandidateAndJob } from '../utils'
 
 export const POST: RequestHandler = async ({ request }) => {
   let body: unknown
@@ -29,19 +29,19 @@ export const POST: RequestHandler = async ({ request }) => {
   const jobId = String(data.jobId)
 
   try {
-    const candidate = candidateDAO.getById(candidateId)
-    if (!candidate) {
-      return json({ success: false, error: 'Candidate not found' }, { status: 404 })
-    }
-
     const job = jobDAO.getById(jobId)
     if (!job) {
       return json({ success: false, error: 'Job not found' }, { status: 404 })
     }
 
+    const profile = getResumeProfileByCandidateAndJob(candidateId, jobId)
+    if (!profile) {
+      return json({ success: false, error: 'Resume profile not found' }, { status: 404 })
+    }
+
     const config = getAIConfig()
     const ai = createAI(config)
-    const result = await ai.evaluate(candidate, job)
+    const result = await ai.evaluate(profile, job)
 
     const assessment = assessmentDAO.create(result)
     return json({ success: true, data: assessment }, { status: 201 })

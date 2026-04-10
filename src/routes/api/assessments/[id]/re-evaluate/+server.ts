@@ -1,10 +1,14 @@
 import { json } from '@sveltejs/kit'
 import type { RequestHandler } from './$types'
-import { assessmentDAO, attachmentDAO, candidateDAO, jobDAO } from '$lib/server/db'
+import { assessmentDAO, attachmentDAO, jobDAO } from '$lib/server/db'
 import { createAI, AIServiceError } from '$lib/server/services/ai'
 import { buildReEvaluationPrompt } from '$lib/server/services/ai/prompts'
 import { safeParseEvaluation } from '$lib/server/services/ai/evaluation-parser'
-import { getAIConfig, AIConfigError } from '../../../ai/utils'
+import {
+  AIConfigError,
+  getAIConfig,
+  getResumeProfileByCandidateAndJob
+} from '../../../ai/utils'
 
 export const POST: RequestHandler = async ({ params }) => {
   try {
@@ -13,14 +17,14 @@ export const POST: RequestHandler = async ({ params }) => {
       return json({ success: false, error: 'Assessment not found' }, { status: 404 })
     }
 
-    const candidate = candidateDAO.getById(assessment.candidateId)
-    if (!candidate) {
-      return json({ success: false, error: 'Candidate not found' }, { status: 404 })
-    }
-
     const job = jobDAO.getById(assessment.jobId)
     if (!job) {
       return json({ success: false, error: 'Job not found' }, { status: 404 })
+    }
+
+    const profile = getResumeProfileByCandidateAndJob(assessment.candidateId, assessment.jobId)
+    if (!profile) {
+      return json({ success: false, error: 'Resume profile not found' }, { status: 404 })
     }
 
     const attachments = attachmentDAO.getByAssessmentId(params.id)
@@ -34,7 +38,7 @@ export const POST: RequestHandler = async ({ params }) => {
 
     const config = getAIConfig()
     const ai = createAI(config)
-    const prompt = buildReEvaluationPrompt(candidate, job, assessment, attachmentTexts)
+    const prompt = buildReEvaluationPrompt(profile, job, assessment, attachmentTexts)
     const rawResponse = await ai.chat([{ role: 'user', content: prompt }])
     const parsed = safeParseEvaluation(rawResponse, job)
 
