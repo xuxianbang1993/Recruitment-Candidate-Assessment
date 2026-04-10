@@ -1,6 +1,7 @@
 import type { ParsedResume, ResumeParser } from './resume-parser.js'
 import { extractText } from 'unpdf'
 import { truncateResumeText } from './resume-parser.js'
+import { ocrService } from './ocr-service.js'
 
 interface ExtractedPdfText {
   totalPages: number
@@ -39,8 +40,25 @@ export class PdfResumeParser implements ResumeParser {
     }
 
     const rawText = normalizePdfText(result.text)
+
     if (rawText.trim().length === 0) {
-      throw new Error(`PDF 文件 "${filename}" 未提取到任何文本内容，请确认文件包含可复制文本`)
+      const ocrText = await ocrService.recognizeFromPdf(buffer)
+      if (ocrText.trim().length === 0) {
+        throw new Error(
+          `PDF 文件 "${filename}" 为扫描件且 OCR 无法识别文字内容，请上传包含可复制文字的简历`
+        )
+      }
+
+      return {
+        text: truncateResumeText(ocrText),
+        metadata: {
+          filename,
+          fileType: 'pdf',
+          pageCount: result.totalPages,
+          fileSize: buffer.length,
+          ocrUsed: true
+        }
+      }
     }
 
     return {
