@@ -193,10 +193,12 @@ export const POST: RequestHandler = async ({ request }) => {
     const isUnsupported =
       message.includes('不支持的文件格式') || message.includes('无法确定文件类型')
     const isTooLarge = message.includes('超出限制')
+    const isEmptyContent =
+      message.includes('未提取到') || message.includes('扫描件')
     if (isTooLarge) {
       return json({ success: false, error: message }, { status: 413 })
     }
-    if (isUnsupported) {
+    if (isUnsupported || isEmptyContent) {
       return json({ success: false, error: message }, { status: 400 })
     }
     console.error('POST /api/resume/upload parseResume error:', error)
