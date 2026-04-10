@@ -1,34 +1,46 @@
-import { PDFParse } from 'pdf-parse'
-import type { ResumeParser, ParsedResume } from './resume-parser.js'
+import type { ParsedResume, ResumeParser } from './resume-parser.js'
+import { extractText } from 'unpdf'
 import { truncateResumeText } from './resume-parser.js'
 
+interface ExtractedPdfText {
+  totalPages: number
+  text: string | string[]
+}
+
+function normalizePdfText(text: string | string[]): string {
+  if (typeof text === 'string') return text
+
+  return text
+    .map((pageText) => pageText.trim())
+    .filter((pageText) => pageText.length > 0)
+    .join('\n\n')
+}
+
+/**
+ * PDF resume parser based on unpdf for better Chinese and CJK extraction quality.
+ */
 export class PdfResumeParser implements ResumeParser {
   readonly supportedExtensions = ['.pdf']
 
+  /**
+   * Parses a PDF resume file and returns normalized text plus file metadata.
+   */
   async parse(buffer: Buffer, filename: string): Promise<ParsedResume> {
     if (buffer.length === 0) {
       throw new Error(`PDF 文件 "${filename}" 为空，无法解析`)
     }
 
-    const parser = new PDFParse({ data: buffer })
-
-    let textResult: Awaited<ReturnType<typeof parser.getText>>
+    let result: ExtractedPdfText
     try {
-      // getText() internally loads the PDF document; no need to call load() directly.
-      textResult = await parser.getText()
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
+      result = await extractText(new Uint8Array(buffer), { mergePages: true })
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
       throw new Error(`PDF 解析失败 "${filename}": ${message}`)
-    } finally {
-      // Always release pdfjs resources
-      await parser.destroy().catch((err) => console.warn('PDF 资源释放失败:', err))
     }
 
-    const rawText = textResult.text ?? ''
+    const rawText = normalizePdfText(result.text)
     if (rawText.trim().length === 0) {
-      throw new Error(
-        `PDF 文件 "${filename}" 未提取到任何文本内容（可能为扫描件或加密 PDF）`
-      )
+      throw new Error(`PDF 文件 "${filename}" 未提取到任何文本内容，请确认文件包含可复制文本`)
     }
 
     return {
@@ -36,7 +48,7 @@ export class PdfResumeParser implements ResumeParser {
       metadata: {
         filename,
         fileType: 'pdf',
-        pageCount: textResult.total,
+        pageCount: result.totalPages,
         fileSize: buffer.length
       }
     }
