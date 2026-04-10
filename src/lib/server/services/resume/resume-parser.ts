@@ -15,6 +15,7 @@ export interface ParsedResume {
     fileType: string
     pageCount?: number
     fileSize: number
+    ocrUsed?: boolean
   }
 }
 
