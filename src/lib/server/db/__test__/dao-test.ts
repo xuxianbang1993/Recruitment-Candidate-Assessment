@@ -5,6 +5,7 @@
 
 process.env['NODE_ENV'] = 'test'
 
+import { randomUUID } from 'crypto'
 import { resetDatabase } from '../database.js'
 import { CandidateDAO } from '../candidate-dao.js'
 import { JobDAO } from '../job-dao.js'
@@ -12,6 +13,10 @@ import { AssessmentDAO } from '../assessment-dao.js'
 import { AttachmentDAO } from '../attachment-dao.js'
 import { SettingsDAO } from '../settings-dao.js'
 import { ChatHistoryDAO } from '../chat-history-dao.js'
+import { ResumeProfileDAO } from '../resume-profile-dao.js'
+import { WorkExperienceDAO } from '../work-experience-dao.js'
+import { EducationHistoryDAO } from '../education-history-dao.js'
+import { ProjectExperienceDAO } from '../project-experience-dao.js'
 
 let passed = 0
 let failed = 0
@@ -288,6 +293,215 @@ assert(attachments[0]?.originalName === 'resume.pdf', 'getByAssessmentId: origin
 attachmentDAO.delete(newAttachment.id)
 const afterAttachmentDelete = attachmentDAO.getByAssessmentId(assessmentForAttachment.id)
 assert(afterAttachmentDelete.length === 0, 'delete: attachment removed')
+
+section('Resume Profile DAOs')
+const resumeProfileDAO = new ResumeProfileDAO()
+const workExperienceDAO = new WorkExperienceDAO()
+const educationHistoryDAO = new EducationHistoryDAO()
+const projectExperienceDAO = new ProjectExperienceDAO()
+
+const resumeJob = jobDAO.create({
+  title: 'Resume Parsing Engineer',
+  department: 'Platform',
+  category: '',
+  description: '',
+  requirements: [],
+  skills: [],
+  weights: [],
+})
+
+const resumeCandidate = candidateDAO.create({
+  jobId: resumeJob.id,
+  name: 'Carol Resume',
+  phone: '13900139000',
+  email: 'carol@example.com',
+  resumeText: '10 years of experience building hiring systems',
+  skills: ['Parsing'],
+  experience: 10,
+  education: 'Master',
+})
+
+const createdProfile = resumeProfileDAO.create({
+  id: randomUUID(),
+  candidateId: resumeCandidate.id,
+  jobId: resumeJob.id,
+  jobTitle: resumeJob.title,
+  rawText: 'Carol Resume raw profile text',
+  parseStatus: 'pending',
+})
+assert(createdProfile.id.length > 0, 'create: returns resume profile with id')
+assert(createdProfile.candidateId === resumeCandidate.id, 'create: candidateId matches')
+assert(createdProfile.skills.length === 0, 'create: default skills parsed')
+assert(createdProfile.languages.length === 0, 'create: default languages parsed')
+
+resumeProfileDAO.update(createdProfile.id, {
+  name: 'Carol Resume',
+  gender: 'female',
+  phone: '13900139000',
+  email: 'carol@example.com',
+  city: 'Shenzhen',
+  highestEducation: 'Master',
+  school: 'Tsinghua University',
+  major: 'Computer Science',
+  workYears: 10,
+  expectedSalary: '35k-45k',
+  skills: ['Svelte', 'TypeScript', 'SQLite'],
+  certificates: ['PMP'],
+  languages: [
+    { language: 'English', level: 'C1' },
+    { language: 'Chinese', level: 'Native' },
+  ],
+  selfEvaluation: 'Built multiple recruiting systems',
+  parseStatus: 'completed',
+})
+
+const updatedProfile = resumeProfileDAO.getById(createdProfile.id)
+assert(updatedProfile?.name === 'Carol Resume', 'update: name updated')
+assert(updatedProfile?.skills.length === 3, 'update: skills updated')
+assert(updatedProfile?.languages[0]?.language === 'English', 'update: languages updated')
+assert(updatedProfile?.parseStatus === 'completed', 'update: parseStatus updated')
+
+workExperienceDAO.batchCreate(createdProfile.id, [
+  {
+    company: 'Alpha Inc',
+    position: 'Senior Engineer',
+    startDate: '2020-01',
+    endDate: '2022-12',
+    description: 'Built parsing services',
+  },
+  {
+    company: 'Beta Labs',
+    position: 'Tech Lead',
+    startDate: '2023-01',
+    endDate: '2025-12',
+    description: 'Led hiring platform development',
+  },
+])
+
+educationHistoryDAO.batchCreate(createdProfile.id, [
+  {
+    school: 'Tsinghua University',
+    major: 'Computer Science',
+    degree: 'Bachelor',
+    startDate: '2010-09',
+    endDate: '2014-06',
+  },
+  {
+    school: 'Peking University',
+    major: 'Software Engineering',
+    degree: 'Master',
+    startDate: '2014-09',
+    endDate: '2017-06',
+  },
+])
+
+projectExperienceDAO.batchCreate(createdProfile.id, [
+  {
+    projectName: 'Resume Parser',
+    role: 'Architect',
+    startDate: '2022-01',
+    endDate: '2023-06',
+    description: 'Designed resume extraction workflows',
+  },
+  {
+    projectName: 'Interview Platform',
+    role: 'Lead Developer',
+    startDate: '2023-07',
+    endDate: '2025-02',
+    description: 'Built structured candidate review tooling',
+  },
+])
+
+const workItems = workExperienceDAO.getByProfileId(createdProfile.id)
+assert(workItems.length === 2, 'work batchCreate: inserted all items')
+assert(workItems[0]?.sortOrder === 0 && workItems[1]?.sortOrder === 1, 'work getByProfileId: assigns sort order')
+assert(workItems[0]?.company === 'Alpha Inc' && workItems[1]?.company === 'Beta Labs', 'work getByProfileId: sorted ASC')
+
+const educationItems = educationHistoryDAO.getByProfileId(createdProfile.id)
+assert(educationItems.length === 2, 'education batchCreate: inserted all items')
+assert(educationItems[0]?.sortOrder === 0 && educationItems[1]?.sortOrder === 1, 'education getByProfileId: assigns sort order')
+assert(educationItems[0]?.school === 'Tsinghua University', 'education getByProfileId: sorted ASC')
+
+const projectItems = projectExperienceDAO.getByProfileId(createdProfile.id)
+assert(projectItems.length === 2, 'project batchCreate: inserted all items')
+assert(projectItems[0]?.sortOrder === 0 && projectItems[1]?.sortOrder === 1, 'project getByProfileId: assigns sort order')
+assert(projectItems[1]?.projectName === 'Interview Platform', 'project getByProfileId: sorted ASC')
+
+const fullProfile = resumeProfileDAO.getFullById(createdProfile.id)
+assert(fullProfile !== undefined, 'getFullById: found resume profile')
+assert(fullProfile?.workExperiences.length === 2, 'getFullById: includes work experiences')
+assert(fullProfile?.educationHistory.length === 2, 'getFullById: includes education history')
+assert(fullProfile?.projectExperiences.length === 2, 'getFullById: includes project experiences')
+
+const byCandidateProfile = resumeProfileDAO.getByCandidateId(resumeCandidate.id)
+assert(byCandidateProfile?.id === createdProfile.id, 'getByCandidateId: returns matching profile')
+
+const byJobProfiles = resumeProfileDAO.getByJobId(resumeJob.id)
+assert(byJobProfiles.some((profile) => profile.id === createdProfile.id), 'getByJobId: returns profiles for job')
+
+const deleteCandidate = candidateDAO.create({
+  jobId: resumeJob.id,
+  name: 'Delete By Candidate',
+  phone: '',
+  email: 'delete-candidate@example.com',
+  resumeText: '',
+  skills: [],
+  experience: 1,
+  education: '',
+})
+
+const deleteCandidateProfile = resumeProfileDAO.create({
+  id: randomUUID(),
+  candidateId: deleteCandidate.id,
+  jobId: resumeJob.id,
+  jobTitle: resumeJob.title,
+  rawText: 'Candidate delete profile',
+  parseStatus: 'pending',
+})
+
+const deletedByCandidate = resumeProfileDAO.deleteByCandidateId(deleteCandidate.id)
+assert(deletedByCandidate === 1, 'deleteByCandidateId: deleted one profile')
+assert(resumeProfileDAO.getById(deleteCandidateProfile.id) === undefined, 'deleteByCandidateId: profile removed')
+
+const deleteJob = jobDAO.create({
+  title: 'Delete Profile Job',
+  department: 'QA',
+  category: '',
+  description: '',
+  requirements: [],
+  skills: [],
+  weights: [],
+})
+
+const deleteJobCandidate = candidateDAO.create({
+  jobId: deleteJob.id,
+  name: 'Delete By Job',
+  phone: '',
+  email: 'delete-job@example.com',
+  resumeText: '',
+  skills: [],
+  experience: 1,
+  education: '',
+})
+
+const deleteJobProfile = resumeProfileDAO.create({
+  id: randomUUID(),
+  candidateId: deleteJobCandidate.id,
+  jobId: deleteJob.id,
+  jobTitle: deleteJob.title,
+  rawText: 'Job delete profile',
+  parseStatus: 'pending',
+})
+
+const deletedByJob = resumeProfileDAO.deleteByJobId(deleteJob.id)
+assert(deletedByJob === 1, 'deleteByJobId: deleted one profile')
+assert(resumeProfileDAO.getById(deleteJobProfile.id) === undefined, 'deleteByJobId: profile removed')
+
+resumeProfileDAO.delete(createdProfile.id)
+assert(resumeProfileDAO.getById(createdProfile.id) === undefined, 'delete: profile removed')
+assert(workExperienceDAO.getByProfileId(createdProfile.id).length === 0, 'delete: cascades work experiences')
+assert(educationHistoryDAO.getByProfileId(createdProfile.id).length === 0, 'delete: cascades education history')
+assert(projectExperienceDAO.getByProfileId(createdProfile.id).length === 0, 'delete: cascades project experiences')
 
 console.log(`\n${'='.repeat(50)}`)
 console.log(`Results: ${passed} PASS, ${failed} FAIL`)
