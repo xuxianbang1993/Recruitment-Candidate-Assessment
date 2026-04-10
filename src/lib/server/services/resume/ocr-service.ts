@@ -1,26 +1,21 @@
+import type { OcrEngine } from 'multilingual-purejs-ocr'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { renderPageAsImage } from 'unpdf'
 
-// Resolve ONNX model paths relative to the installed package
-const require = createRequire(import.meta.url)
-const modelsDir = path.join(
-  path.dirname(require.resolve('multilingual-purejs-ocr')),
-  'models'
-)
+const MAX_OCR_PAGES = 20
 
-interface OcrDetectItem {
-  text: string
-  confidence: number
-}
-
-interface OcrDetectResult {
-  totalElements: number
-  data: OcrDetectItem[]
-}
-
-interface OcrEngine {
-  detect(input: Buffer | string): Promise<OcrDetectResult>
+/**
+ * Resolves the absolute path to the ONNX models directory.
+ * Deferred to first OCR call to avoid crashing the server at startup
+ * when the package is not installed (e.g. before npm install).
+ */
+function resolveModelsDir(): string {
+  const esmRequire = createRequire(import.meta.url)
+  return path.join(
+    path.dirname(esmRequire.resolve('multilingual-purejs-ocr')),
+    'models'
+  )
 }
 
 /**
@@ -28,23 +23,27 @@ interface OcrEngine {
  * Lazily initializes the engine on first use to avoid startup overhead.
  */
 class OcrService {
-  private ocr: OcrEngine | null = null
+  private initPromise: Promise<OcrEngine> | null = null
 
   /**
    * Lazily creates the OCR engine with Chinese model.
+   * Stores the in-flight Promise to prevent concurrent init race conditions.
    */
-  private async ensureInitialized(): Promise<OcrEngine> {
-    if (this.ocr) return this.ocr
+  private ensureInitialized(): Promise<OcrEngine> {
+    if (!this.initPromise) {
+      this.initPromise = (async (): Promise<OcrEngine> => {
+        const modelsDir = resolveModelsDir()
+        const { Ocr } = await import('multilingual-purejs-ocr')
+        return Ocr.create({
+          lang: 'ch',
+          detectionModelPath: path.join(modelsDir, 'ch_PP-OCRv4_det_infer.onnx'),
+          recognitionModelPath: path.join(modelsDir, 'ch_PP-OCRv4_rec_infer.onnx'),
+          dictionaryPath: path.join(modelsDir, 'ch_dict.txt')
+        })
+      })()
+    }
 
-    const { Ocr } = await import('multilingual-purejs-ocr')
-    this.ocr = await Ocr.create({
-      lang: 'ch',
-      detectionModelPath: path.join(modelsDir, 'ch_PP-OCRv4_det_infer.onnx'),
-      recognitionModelPath: path.join(modelsDir, 'ch_PP-OCRv4_rec_infer.onnx'),
-      dictionaryPath: path.join(modelsDir, 'ch_dict.txt')
-    })
-
-    return this.ocr!
+    return this.initPromise
   }
 
   /**
@@ -53,10 +52,11 @@ class OcrService {
    * (which conflicts with renderPageAsImage's internal worker).
    */
   async recognizeFromPdf(buffer: Buffer, pageCount: number): Promise<string> {
+    const effectivePages = Math.min(pageCount, MAX_OCR_PAGES)
     const pdfData = new Uint8Array(buffer)
     const pageTexts: string[] = []
 
-    for (let page = 1; page <= pageCount; page++) {
+    for (let page = 1; page <= effectivePages; page++) {
       const imageData = await renderPageAsImage(pdfData, page, {
         scale: 2,
         canvasImport: () => import('@napi-rs/canvas')
@@ -72,7 +72,7 @@ class OcrService {
   }
 
   /**
-   * Runs OCR on a single image buffer (PNG/JPEG).
+   * Runs OCR on a single image buffer (PNG).
    * Returns extracted text lines joined by newlines.
    */
   async recognizeFromImage(imageBuffer: Buffer): Promise<string> {
@@ -83,7 +83,7 @@ class OcrService {
       return ''
     }
 
-    return result.data.map((item) => item.text).join('\n')
+    return result.data.map((item: { text: string }) => item.text).join('\n')
   }
 }
 
